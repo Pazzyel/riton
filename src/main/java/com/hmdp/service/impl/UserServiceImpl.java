@@ -11,6 +11,7 @@ import com.hmdp.mapper.UserMapper;
 import com.hmdp.service.IUserService;
 import com.hmdp.utils.RegexUtils;
 import com.hmdp.utils.SystemConstants;
+import com.hmdp.utils.UserHolder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -91,4 +92,25 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         save(user);
         return user;
     }
+
+    /**
+     * 获取当前登录的用户并返回
+     * @return 无
+     */
+    @Override
+    public Result me() {
+        return Result.ok(UserHolder.getUser());
+    }
+
+    /**
+     * 登出功能
+     * @return 无
+     */
+    @Override
+    public Result logout() {
+        UserHolder.removeUser();
+        return Result.ok();
+    }
+
+
 }
