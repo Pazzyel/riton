@@ -16,18 +16,11 @@ public class LoginInterceptor implements HandlerInterceptor {
      */
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        //获取session
-        HttpSession session = request.getSession();
-        //获取用户
-        Object user = session.getAttribute("user");
-        if (user == null) {
+        if (UserHolder.getUser() == null) {
             //没有用户信息
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return false;
         }
-
-        //有信息，保存到ThreadLocal
-        UserHolder.saveUser((UserDTO) user);
         return true;
     }
 }
