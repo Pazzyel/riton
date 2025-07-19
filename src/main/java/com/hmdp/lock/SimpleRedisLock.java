@@ -2,8 +2,11 @@ package com.hmdp.lock;
 
 import cn.hutool.core.lang.UUID;
 import cn.hutool.core.util.BooleanUtil;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 
+import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
 public class SimpleRedisLock implements ILock {
@@ -15,6 +18,13 @@ public class SimpleRedisLock implements ILock {
     private static final String KEY_PREFIX = "lock:";
     //线程的id前缀
     private static final String ID_PREFIX = UUID.randomUUID().toString(true) + "-";
+    //释放锁的Lua脚本
+    private static final DefaultRedisScript<Long> UNLOCK_SCRIPT;
+    static {
+        UNLOCK_SCRIPT = new DefaultRedisScript<>();
+        UNLOCK_SCRIPT.setLocation(new ClassPathResource("lua/unlock.lua"));
+        UNLOCK_SCRIPT.setResultType(Long.class);
+    }
 
 
     public SimpleRedisLock(String name, StringRedisTemplate redisTemplate) {
@@ -42,11 +52,8 @@ public class SimpleRedisLock implements ILock {
         // 获取线程标示
         String threadId = ID_PREFIX + Thread.currentThread().getId();
         // 获取锁中的标示
-        String id = redisTemplate.opsForValue().get(KEY_PREFIX + name);
-        // 判断标示是否一致，不一致说明锁已经超时释放，现在的锁不是自己的
-        if(threadId.equals(id)) {
-            // 释放锁
-            redisTemplate.delete(KEY_PREFIX + name);
-        }
+        // exectue 参数1脚本，参数2KEYS列表， 可变参数3ARGV列表
+        redisTemplate.execute(UNLOCK_SCRIPT, Collections.singletonList(KEY_PREFIX + name), threadId);
+
     }
 }
