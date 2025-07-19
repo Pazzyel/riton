@@ -23,7 +23,9 @@ import org.springframework.stereotype.Service;
 import javax.servlet.http.HttpSession;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -84,6 +86,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
             user = createUserWithPhone(phone);
         }
 
+        //清除这个用户存在的所有token
+        String userKey = "login:user:" + user.getId();
+        Set<String> tokens = stringRedisTemplate.opsForSet().members(userKey);
+        if (tokens != null && !tokens.isEmpty()) {
+            tokens = tokens.stream().map(token -> RedisConstants.LOGIN_USER_KEY + token).collect(Collectors.toSet());//拼接完整的token
+            stringRedisTemplate.delete(tokens);//删除对应的所有token条目
+            stringRedisTemplate.delete(userKey);//删除索引表自身
+        }
+
         //保存用户信息到redis
         String token = UUID.randomUUID().toString();
         UserDTO userDTO = BeanUtil.copyProperties(user, UserDTO.class);
@@ -95,6 +106,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         stringRedisTemplate.opsForHash().putAll(tokenKey,userMap);
         //设置有效期
         stringRedisTemplate.expire(tokenKey,RedisConstants.LOGIN_USER_TTL, TimeUnit.MINUTES);
+
+        //另外加一张表维护这个用户的所有token
+        stringRedisTemplate.opsForSet().add(userKey,token);
 
         //返回token
         return Result.ok(token);
@@ -128,6 +142,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
      */
     @Override
     public Result logout() {
+        Long userId = UserHolder.getUser().getId();
+        //清除这个用户存在的所有token
+        String userKey = "login:user:" + userId;
+        Set<String> tokens = stringRedisTemplate.opsForSet().members(userKey);
+        if (tokens != null && !tokens.isEmpty()) {
+            tokens = tokens.stream().map(token -> RedisConstants.LOGIN_USER_KEY + token).collect(Collectors.toSet());//拼接完整的token
+            stringRedisTemplate.delete(tokens);//删除对应的所有token条目
+            stringRedisTemplate.delete(userKey);//删除索引表自身
+        }
         UserHolder.removeUser();
         return Result.ok();
     }
