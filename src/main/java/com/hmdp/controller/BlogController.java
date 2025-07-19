@@ -13,6 +13,7 @@ import com.hmdp.utils.UserHolder;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -37,6 +38,9 @@ public class BlogController {
         // 获取登录用户
         UserDTO user = UserHolder.getUser();
         blog.setUserId(user.getId());
+        LocalDateTime now = LocalDateTime.now();
+        blog.setCreateTime(now);
+        blog.setUpdateTime(now);
         // 保存探店博文
         blogService.save(blog);
         // 返回id
@@ -79,5 +83,10 @@ public class BlogController {
             blog.setIcon(user.getIcon());
         });
         return Result.ok(records);
+    }
+
+    @GetMapping("/{id}")
+    public Result queryBlogById(@PathVariable("id") Long id) {
+        return blogService.queryBlogById(id);
     }
 }
