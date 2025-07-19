@@ -27,4 +27,11 @@ public interface IBlogService extends IService<Blog> {
      * @return 无
      */
     Result likeBlog(Long id);
+
+    /**
+     * 查询改博客id下最早点赞的top5
+     * @param id 博客id
+     * @return 最早点赞的top5用户列表
+     */
+    Result queryBlogLikes(Long id);
 }
