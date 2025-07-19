@@ -20,4 +20,11 @@ public interface IBlogService extends IService<Blog> {
      * @return 包含用户信息的博客信息
      */
     Result queryBlogById(Long id);
+
+    /**
+     * 点赞功能，对未点赞的点赞，已点赞的取消赞
+     * @param id 博客id
+     * @return 无
+     */
+    Result likeBlog(Long id);
 }

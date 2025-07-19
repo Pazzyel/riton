@@ -1,5 +1,6 @@
 package com.hmdp.service.impl;
 
+import cn.hutool.core.util.BooleanUtil;
 import com.hmdp.dto.Result;
 import com.hmdp.entity.Blog;
 import com.hmdp.entity.User;
@@ -7,7 +8,10 @@ import com.hmdp.mapper.BlogMapper;
 import com.hmdp.service.IBlogService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.service.IUserService;
+import com.hmdp.utils.RedisConstants;
+import com.hmdp.utils.UserHolder;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 /**
@@ -23,9 +27,12 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
 
     private IUserService userService;
 
+    private StringRedisTemplate stringRedisTemplate;
+
     @Autowired
-    public BlogServiceImpl(IUserService userService) {
+    public BlogServiceImpl(IUserService userService, StringRedisTemplate redisTemplate) {
         this.userService = userService;
+        this.stringRedisTemplate = redisTemplate;
     }
 
     /**
@@ -53,5 +60,34 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
         User user = userService.getById(blog.getUserId());
         blog.setIcon(user.getIcon());
         blog.setName(user.getNickName());
+    }
+
+    /**
+     * 点赞功能，对未点赞的点赞，已点赞的取消赞
+     * @param id 博客id
+     * @return 无
+     */
+    @Override
+    public Result likeBlog(Long id) {
+        //对未点赞的点赞，已点赞的取消赞
+        Long userId = UserHolder.getUser().getId();
+        String key = RedisConstants.BLOG_LIKED_KEY + id;//id是blog的id，每个不同的blog有自己的key
+        Boolean isMember = stringRedisTemplate.opsForSet().isMember(key, userId.toString());
+        if (BooleanUtil.isFalse(isMember)) {
+            //用户不是已经点赞集合的成员，本次操作为点赞
+            boolean success = update().setSql("liked = liked + 1").eq("id", id).update();
+            if (success) {
+                //点赞后，把用户加入已点赞集合
+                stringRedisTemplate.opsForSet().add(key, userId.toString());//第三个参数是score，我们按照时间排序
+            }
+        } else {
+            //本次操作取消赞
+            boolean success = update().setSql("liked = liked - 1").eq("id", id).update();
+            if (success) {
+                //移除点赞集合
+                stringRedisTemplate.opsForSet().remove(key, userId.toString());
+            }
+        }
+        return Result.ok();
     }
 }
