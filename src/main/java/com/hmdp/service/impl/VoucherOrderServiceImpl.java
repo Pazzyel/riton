@@ -3,6 +3,8 @@ package com.hmdp.service.impl;
 import com.hmdp.dto.Result;
 import com.hmdp.entity.SeckillVoucher;
 import com.hmdp.entity.VoucherOrder;
+import com.hmdp.lock.ILock;
+import com.hmdp.lock.SimpleRedisLock;
 import com.hmdp.mapper.VoucherOrderMapper;
 import com.hmdp.service.ISeckillVoucherService;
 import com.hmdp.service.IVoucherOrderService;
@@ -11,6 +13,7 @@ import com.hmdp.utils.RedisIdWorker;
 import com.hmdp.utils.UserHolder;
 import org.springframework.aop.framework.AopContext;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,10 +34,13 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
 
     private ISeckillVoucherService seckillVoucherService;
 
+    private StringRedisTemplate stringRedisTemplate;
+
     @Autowired
-    public VoucherOrderServiceImpl(RedisIdWorker redisIdWorker, ISeckillVoucherService seckillVoucherService) {
+    public VoucherOrderServiceImpl(RedisIdWorker redisIdWorker, ISeckillVoucherService seckillVoucherService, StringRedisTemplate stringRedisTemplate) {
         this.redisIdWorker = redisIdWorker;
         this.seckillVoucherService = seckillVoucherService;
+        this.stringRedisTemplate = stringRedisTemplate;
     }
 
     /**
@@ -63,9 +69,17 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         }
         // 一人一单逻辑
         Long userId = UserHolder.getUser().getId();
-        synchronized (userId.toString().intern()) {
+
+        ILock lock = new SimpleRedisLock("order:" + userId,stringRedisTemplate);
+        if(!lock.tryLock(2L)) {
+            //没抢到锁说明重复下单
+            return Result.fail("不允许重复下单！");
+        }
+        try {
             IVoucherOrderService proxy = (IVoucherOrderService) AopContext.currentProxy();//获取代理类
             return proxy.createVoucherOrder(voucherId);
+        } finally {
+            lock.unlock();
         }
     }
 
