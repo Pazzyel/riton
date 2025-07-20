@@ -4,21 +4,25 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hmdp.dto.Result;
+import com.hmdp.dto.ScrollResult;
 import com.hmdp.dto.UserDTO;
 import com.hmdp.entity.Blog;
+import com.hmdp.entity.Follow;
 import com.hmdp.entity.User;
 import com.hmdp.mapper.BlogMapper;
 import com.hmdp.service.IBlogService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.hmdp.service.IFollowService;
 import com.hmdp.service.IUserService;
 import com.hmdp.utils.RedisConstants;
 import com.hmdp.utils.SystemConstants;
 import com.hmdp.utils.UserHolder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -39,10 +43,13 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
 
     private StringRedisTemplate stringRedisTemplate;
 
+    private IFollowService followService;
+
     @Autowired
-    public BlogServiceImpl(IUserService userService, StringRedisTemplate redisTemplate) {
+    public BlogServiceImpl(IUserService userService, StringRedisTemplate redisTemplate, IFollowService followService) {
         this.userService = userService;
         this.stringRedisTemplate = redisTemplate;
+        this.followService = followService;
     }
 
     /**
@@ -63,7 +70,7 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
     }
 
     /**
-     * 根据blog的用户id查询对应用户并注入相应字段
+     * 根据blog的用户id查询作者用户并注入相应字段
      * @param blog 博客
      */
     private void queryBlogUser(Blog blog) {
@@ -136,11 +143,21 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
         // 获取登录用户
         UserDTO user = UserHolder.getUser();
         blog.setUserId(user.getId());
-        LocalDateTime now = LocalDateTime.now();
-        blog.setCreateTime(now);
-        blog.setUpdateTime(now);
         // 保存探店博文
-        save(blog);
+        boolean success = save(blog);
+        if (!success) {
+            return Result.fail("新增笔记失败");
+        }
+        // 推送到所有粉丝的收件箱
+        //SELECT * FROM tb_follow WHERE follow_user_id = #{id}
+        List<Follow> follows = followService.query().eq("follow_user_id", user.getId()).list();
+        for (Follow follow : follows) {
+            Long fansId = follow.getUserId();
+            String key = RedisConstants.FEED_KEY + fansId;
+            //每个粉丝都有自己的收件箱SortedSet
+            stringRedisTemplate.opsForZSet().add(key,blog.getId().toString(),System.currentTimeMillis());//根据时间戳排序
+        }
+
         // 返回id
         return Result.ok(blog.getId());
     }
@@ -199,5 +216,78 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
         List<Blog> records = page.getRecords();
         //我的Blog用户就是我自己
         return Result.ok(records);
+    }
+
+    /**
+     * 分页查询用户关注的博主的博客内容（用户收件箱）
+     * @param max 上一次查询的最小时间戳（最旧博客的时间戳）
+     * @param offset 上一次查询等于最小时间戳的记录的数目，本次查询要跳过这些记录
+     * @return 分页查询结果
+     */
+    @Override
+    public Result queryBlogOfFollow(Long max, Integer offset){
+        //max是上一次查询的最小时间戳，offset是上一次查询时间戳等于最小时间戳记录的个数
+        //offset的意义是因为ZSet分数范围查询的[min, max]是闭区间，但我们不需要等于上次查询最小时间戳的数据
+        Long userId = UserHolder.getUser().getId();
+        String key = RedisConstants.FEED_KEY + userId;
+        //查询的参数分别是key：key的名称，min:score的最小值，max:score的最大值，count:查询的记录条数
+        //reverse是反向查询，WithScores是携带score值
+        Set<ZSetOperations.TypedTuple<String>> typedTuples = stringRedisTemplate.opsForZSet()
+                .reverseRangeByScoreWithScores(key, 0, max, offset, 2);//每次查询2条数据，注意reverse，降序查询
+
+        //处理空集合
+        if(typedTuples == null || typedTuples.isEmpty()){
+            return Result.ok(Collections.emptyList());
+        }
+
+        List<Long> ids = new ArrayList<>(typedTuples.size());//Blog的id集合
+        long minTime = 0;//查询结果集合的最小时间戳
+        int newOffset = 1;
+        //返回的Set实现类是有序的
+        for(ZSetOperations.TypedTuple<String> tuple : typedTuples){
+            ids.add(Long.parseLong(tuple.getValue()));
+            long time = tuple.getScore().longValue();
+            //正向循环，查询的最后一个数据一定是时间戳最小的
+            if(time == minTime){
+                //有超过一条数据等于最小时间戳，增加newOffset计数
+                ++newOffset;
+            } else {
+                //有更小的时间戳，重置
+                minTime = time;
+                newOffset = 1;
+            }
+        }
+
+        //根据Blog的id列表查询Blog
+        //List<Blog> blogs = this.listByIds(ids);//需要按时间顺序，应该手动写SQL
+        String idStr = StrUtil.join(",",ids);
+        //按照我们查询BlogId的顺序查询数据库
+        List<Blog> blogs = this.query().in("id", ids).last("ORDER BY FIELD (id," + idStr + ")").list();
+
+        for(Blog blog : blogs){
+            //注入用户字段
+            queryBlogUser(blog);
+            //注入已点赞字段
+            isBlogLiked(blog);
+        }
+
+        //封装并返回
+        ScrollResult scrollResult = new ScrollResult();
+        scrollResult.setList(blogs);
+        scrollResult.setMinTime(minTime);
+        scrollResult.setOffset(newOffset);
+        return Result.ok(scrollResult);
+    }
+
+    /**
+     * 向blog注入当前用户的点赞情况
+     * @param blog 注入对象
+     */
+    private void isBlogLiked(Blog blog) {
+        String key = RedisConstants.BLOG_LIKED_KEY + blog.getId();
+        Long userId = UserHolder.getUser().getId();
+        //查询该博客的点赞集合有没有当前用户
+        Double score = stringRedisTemplate.opsForZSet().score(key, userId.toString());
+        blog.setIsLike(score != null);
     }
 }

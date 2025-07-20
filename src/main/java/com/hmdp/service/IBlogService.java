@@ -63,4 +63,12 @@ public interface IBlogService extends IService<Blog> {
      * @return 查询结果
      */
     Result queryBlogByUserId(Integer current, Long userId);
+
+    /**
+     * 分页查询用户关注的博主的博客内容（用户收件箱）
+     * @param max 上一次查询的最小时间戳（最旧博客的时间戳）
+     * @param offset 上一次查询等于最小时间戳的记录的数目，本次查询要跳过这些记录
+     * @return 分页查询结果
+     */
+    Result queryBlogOfFollow(Long max, Integer offset);
 }
