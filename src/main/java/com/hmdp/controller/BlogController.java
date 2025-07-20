@@ -53,4 +53,16 @@ public class BlogController {
     public Result queryBlogLikes(@PathVariable("id") Long id) {
         return blogService.queryBlogLikes(id);
     }
+
+    /**
+     * 根据用户id分页查询用户blog
+     * @param current 当前页
+     * @param userId 用户id
+     * @return 查询结果
+     */
+    @GetMapping("/of/user")
+    public Result queryBlogByUserId(@RequestParam(value = "current", defaultValue = "1") Integer current,
+                                    @RequestParam("id") Long userId) {
+        return blogService.queryBlogByUserId(current, userId);
+    }
 }
