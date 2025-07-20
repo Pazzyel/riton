@@ -37,4 +37,16 @@ public interface IUserService extends IService<User> {
      * @return 无
      */
     Result logout();
+
+    /**
+     * 用户签到今天
+     * @return 无
+     */
+    Result sign();
+
+    /**
+     * 统计用户本月连续签到天数
+     * @return 连续签到的天使
+     */
+    Result signCount();
 }

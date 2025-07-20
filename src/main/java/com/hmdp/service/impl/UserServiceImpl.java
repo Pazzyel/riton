@@ -17,11 +17,15 @@ import com.hmdp.utils.SystemConstants;
 import com.hmdp.utils.UserHolder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.connection.BitFieldSubCommands;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import javax.servlet.http.HttpSession;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -155,5 +159,61 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         return Result.ok();
     }
 
+    /**
+     * 用户签到今天
+     * @return 无
+     */
+    @Override
+    public Result sign() {
+        Long userId = UserHolder.getUser().getId();
+        LocalDateTime now = LocalDateTime.now();
+        //拼接key，一个用户一个月的签到信息储存在一张bitMap
+        String keySuffix = now.format(DateTimeFormatter.ofPattern(":yyyyMM"));
+        String key = RedisConstants.USER_SIGN_KEY + userId + keySuffix;
+        //设置bitMap储存签到信息
+        int day = now.getDayOfMonth();
+        //第一个参数key，第二个偏移量，第三个设置的状态（false0，true1）
+        stringRedisTemplate.opsForValue().setBit(key,day - 1,true);
+        return Result.ok();
+    }
+
+    /**
+     * 统计用户本月连续签到天数
+     * @return 连续签到的天使
+     */
+    @Override
+    public Result signCount() {
+        //拼接key，获取日期信息
+        Long userId = UserHolder.getUser().getId();
+        LocalDateTime now = LocalDateTime.now();
+        String keySuffix = now.format(DateTimeFormatter.ofPattern(":yyyyMM"));
+        String key = RedisConstants.USER_SIGN_KEY + userId + keySuffix;
+        int day = now.getDayOfMonth();
+        //从Redis查询BitMap信息,注意Redis只支持i8和u16，因此BitFieldSubCommands.BitFieldType.unsigned(day)来把长度转化为支持的格式
+        //get(...) 表示要从 Redis 中 读取 bit 值。
+        //BitFieldType.unsigned(day)：表示要以 无符号整数 的方式读取，长度是 day 个 bit。
+        //valueAt(0)：从 bit 偏移量 0 开始读（即从第 0 位开始）
+        List<Long> bitMaps = stringRedisTemplate.opsForValue().bitField(key,
+                BitFieldSubCommands.create().get(BitFieldSubCommands.BitFieldType.unsigned(day)).valueAt(0));
+        if(bitMaps == null || bitMaps.isEmpty()){
+            return Result.ok(0);//没有任何签到结果
+        }
+        long num = bitMaps.get(0);
+        if(num == 0){
+            return Result.ok(0);
+        }
+        //循环遍历连续签到天数
+        int count = 0;
+        while(num > 0){
+            if((num & 1) == 1){
+                ++count;
+            } else {
+                //断签
+                break;
+            }
+            num >>>= 1;//逻辑右移才不考虑符号位
+        }
+        return Result.ok(count);
+    }
 
 }
