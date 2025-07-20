@@ -52,7 +52,7 @@ class HmDianPingApplicationTests {
     @Test
     public void loadShopData() {
         List<Shop> shops = shopService.list();
-        Map<Long,List<Shop>> map = shops.stream().collect(Collectors.groupingBy(Shop::getId));//对商铺分组
+        Map<Long,List<Shop>> map = shops.stream().collect(Collectors.groupingBy(Shop::getTypeId));//对商铺分组
 
         for(Map.Entry<Long,List<Shop>> entry : map.entrySet()){
             String key = RedisConstants.SHOP_GEO_KEY + entry.getKey();//同类型的商铺是同一个key
@@ -61,7 +61,7 @@ class HmDianPingApplicationTests {
             for(Shop shop : value){
                 geo.add(new RedisGeoCommands.GeoLocation<>(shop.getId().toString(),new Point(shop.getX(),shop.getY())));
             }
-            //写入Redis
+            // 写入Redis
             stringRedisTemplate.opsForGeo().add(key, geo);
         }
     }
