@@ -66,4 +66,21 @@ class HmDianPingApplicationTests {
         }
     }
 
+    @Test
+    public void testHyperLogLog(){
+        //测试HLL算法统计UV次数(User Visit用户访问量）
+        String[] users = new String[1000];//模拟1000个用户
+        int index = 0;
+        for (int i = 1; i <= 1000000; i++) {
+            users[index++] = "user_" + i;
+            if(i % 1000 == 0){
+                //每1000次提交整组用户
+                index = 0;
+                stringRedisTemplate.opsForHyperLogLog().add("hll1",users);
+            }
+        }
+        Long size = stringRedisTemplate.opsForHyperLogLog().size("hll1");
+        System.out.println("size=" + size);
+    }
+
 }
