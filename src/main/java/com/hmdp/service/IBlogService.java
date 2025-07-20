@@ -34,4 +34,25 @@ public interface IBlogService extends IService<Blog> {
      * @return 最早点赞的top5用户列表
      */
     Result queryBlogLikes(Long id);
+
+    /**
+     * 保存当前用户的Blog
+     * @param blog 要保存的blog
+     * @return blogId
+     */
+    Result saveBlog(Blog blog);
+
+    /**
+     * 分页查询当前登录用户blog
+     * @param current 当前页数
+     * @return 查询结果
+     */
+    Result queryMyBlog(Integer current);
+
+    /**
+     * 分页查询当前用户blog，按点赞数倒序查询
+     * @param current 当前页数
+     * @return 查询结果
+     */
+    Result queryHotBlog(Integer current);
 }

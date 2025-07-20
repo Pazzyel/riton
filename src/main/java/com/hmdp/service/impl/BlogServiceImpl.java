@@ -2,6 +2,7 @@ package com.hmdp.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hmdp.dto.Result;
 import com.hmdp.dto.UserDTO;
 import com.hmdp.entity.Blog;
@@ -11,11 +12,13 @@ import com.hmdp.service.IBlogService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.service.IUserService;
 import com.hmdp.utils.RedisConstants;
+import com.hmdp.utils.SystemConstants;
 import com.hmdp.utils.UserHolder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -121,5 +124,64 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
         List<UserDTO> userDTOs = userService.query().in("id",ids).last("ORDER BY FIELD (id," + idStr + ")").list()
                 .stream().map(o -> BeanUtil.copyProperties(o, UserDTO.class)).collect(Collectors.toList());
         return Result.ok(userDTOs);
+    }
+
+    /**
+     * 保存当前用户的Blog
+     * @param blog 要保存的blog
+     * @return blogId
+     */
+    @Override
+    public Result saveBlog(Blog blog) {
+        // 获取登录用户
+        UserDTO user = UserHolder.getUser();
+        blog.setUserId(user.getId());
+        LocalDateTime now = LocalDateTime.now();
+        blog.setCreateTime(now);
+        blog.setUpdateTime(now);
+        // 保存探店博文
+        save(blog);
+        // 返回id
+        return Result.ok(blog.getId());
+    }
+
+    /**
+     * 分页查询当前登录用户blog
+     * @param current 当前页数
+     * @return 查询结果
+     */
+    @Override
+    public Result queryMyBlog(Integer current) {
+        // 获取登录用户
+        UserDTO user = UserHolder.getUser();
+        // 根据用户查询
+        Page<Blog> page = query()
+                .eq("user_id", user.getId()).page(new Page<>(current, SystemConstants.MAX_PAGE_SIZE));
+        // 获取当前页数据
+        List<Blog> records = page.getRecords();
+        return Result.ok(records);
+    }
+
+    /**
+     * 分页查询当前用户blog，按点赞数倒序查询
+     * @param current 当前页数
+     * @return 查询结果
+     */
+    @Override
+    public Result queryHotBlog(Integer current) {
+        // 根据用户查询
+        Page<Blog> page = query()
+                .orderByDesc("liked")
+                .page(new Page<>(current, SystemConstants.MAX_PAGE_SIZE));
+        // 获取当前页数据
+        List<Blog> records = page.getRecords();
+        // 查询用户
+        records.forEach(blog ->{
+            Long userId = blog.getUserId();
+            User user = userService.getById(userId);
+            blog.setName(user.getNickName());
+            blog.setIcon(user.getIcon());
+        });
+        return Result.ok(records);
     }
 }
