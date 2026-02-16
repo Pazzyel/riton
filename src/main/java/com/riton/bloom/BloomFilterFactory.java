@@ -1,6 +1,5 @@
-﻿package com.riton.utils;
+﻿package com.riton.bloom;
 
-import com.riton.bloom.BloomFilter;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;

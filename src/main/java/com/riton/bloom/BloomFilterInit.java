@@ -2,7 +2,6 @@ package com.riton.bloom;
 
 import com.riton.constants.Constants;
 import com.riton.mapper.ShopMapper;
-import com.riton.utils.BloomFilterFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 

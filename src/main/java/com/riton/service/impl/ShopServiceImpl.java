@@ -2,15 +2,15 @@ package com.riton.service.impl;
 
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.riton.constants.Constants;
 import com.riton.dto.Result;
 import com.riton.entity.Shop;
-import com.riton.enums.RedisKeyEnum;
 import com.riton.mapper.ShopMapper;
-import com.riton.redis.RedisKeyBuilder;
 import com.riton.service.IShopService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.riton.utils.BloomFilterFactory;
+import com.riton.bloom.BloomFilterFactory;
 import com.riton.utils.CacheClient;
 import com.riton.utils.RedisConstants;
 import com.riton.utils.SystemConstants;
@@ -46,6 +46,11 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
 
     private final BloomFilterFactory bloomFilterFactory;
 
+    private static final Cache<Long, Shop> SHOP_LOCAL_CACHE = Caffeine.newBuilder()
+            .maximumSize(10_000)
+            .expireAfterWrite(10, TimeUnit.MINUTES)
+            .build();
+
     @Autowired
     public ShopServiceImpl(StringRedisTemplate stringRedisTemplate, CacheClient cacheClient, BloomFilterFactory bloomFilterFactory) {
         this.stringRedisTemplate = stringRedisTemplate;
@@ -62,11 +67,17 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
      */
     @Override
     public Result queryById(Long id) {
+        // 先查Caffeine
+        Shop localShop = SHOP_LOCAL_CACHE.getIfPresent(id);
+        if (localShop != null) {
+            log.info("查询商铺 本地缓存命中 商铺 : {}",localShop);
+            return Result.ok(localShop);
+        }
 
         // 布隆过滤器判断空值
         if (bloomFilterFactory.getBloomFilter(Constants.BLOOM_FILTER_HANDLER_SHOP).contains(String.valueOf(id))) {
             log.info("查询商铺 布隆过滤器判断不存在 商铺id : {}",id);
-            Result.fail("店铺不存在！");
+            return Result.fail("店铺不存在！");
         }
 
         // 缓存空数据解决缓存穿透
@@ -84,6 +95,10 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
         if (shop == null) {
             return Result.fail("店铺不存在！");
         }
+
+        // 存到Caffeine
+        SHOP_LOCAL_CACHE.put(id, shop);
+
         // 7.返回
         return Result.ok(shop);
     }
@@ -104,6 +119,8 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
         updateById(shop);
         //再删除缓存
         stringRedisTemplate.delete(RedisConstants.CACHE_SHOP_KEY + id);
+        //Caffeine里的也要删除
+        SHOP_LOCAL_CACHE.invalidate(id);
         return Result.ok();
     }
 
