@@ -67,6 +67,8 @@ public enum RedisKeyEnum {
 
     SECKILL_USER_LEVEL_MEMBERS_UNION_TAG_KEY("seckill:user:level:union:{%s}","用户等级范围标签","临时SET，member为用户id"),
 
+    BLOOM_FLITER_KEY("bloom:filter:{%s}","布隆过滤器","布隆过滤器的名字"),
+
     ;
 
     /**

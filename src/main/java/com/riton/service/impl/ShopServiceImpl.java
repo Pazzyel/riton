@@ -2,6 +2,7 @@ package com.riton.service.impl;
 
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.riton.constants.Constants;
 import com.riton.dto.Result;
 import com.riton.entity.Shop;
 import com.riton.enums.RedisKeyEnum;
@@ -9,9 +10,11 @@ import com.riton.mapper.ShopMapper;
 import com.riton.redis.RedisKeyBuilder;
 import com.riton.service.IShopService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.riton.utils.BloomFilterFactory;
 import com.riton.utils.CacheClient;
 import com.riton.utils.RedisConstants;
 import com.riton.utils.SystemConstants;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.geo.Distance;
 import org.springframework.data.geo.GeoResult;
@@ -33,17 +36,21 @@ import java.util.concurrent.TimeUnit;
  * @author 虎哥
  * @since 2021-12-22
  */
+@Slf4j
 @Service
 public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IShopService {
 
-    private StringRedisTemplate stringRedisTemplate;
+    private final StringRedisTemplate stringRedisTemplate;
 
-    private CacheClient cacheClient;
+    private final CacheClient cacheClient;
+
+    private final BloomFilterFactory bloomFilterFactory;
 
     @Autowired
-    public ShopServiceImpl(StringRedisTemplate stringRedisTemplate, CacheClient cacheClient) {
+    public ShopServiceImpl(StringRedisTemplate stringRedisTemplate, CacheClient cacheClient, BloomFilterFactory bloomFilterFactory) {
         this.stringRedisTemplate = stringRedisTemplate;
         this.cacheClient = cacheClient;
+        this.bloomFilterFactory = bloomFilterFactory;
     }
 
 
@@ -55,13 +62,20 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
      */
     @Override
     public Result queryById(Long id) {
+
+        // 布隆过滤器判断空值
+        if (bloomFilterFactory.getBloomFilter(Constants.BLOOM_FILTER_HANDLER_SHOP).contains(String.valueOf(id))) {
+            log.info("查询商铺 布隆过滤器判断不存在 商铺id : {}",id);
+            Result.fail("店铺不存在！");
+        }
+
         // 缓存空数据解决缓存穿透
-        Shop shop = cacheClient
-                .queryWithPassThrough(RedisKeyBuilder.createRedisKey(RedisKeyEnum.CACHE_SHOP_KEY), id, Shop.class, this::getById, RedisConstants.CACHE_SHOP_TTL, TimeUnit.MINUTES);
+//        Shop shop = cacheClient
+//                .queryWithPassThrough(RedisConstants.CACHE_SHOP_KEY, id, Shop.class, this::getById, RedisConstants.CACHE_SHOP_TTL, TimeUnit.MINUTES);
 
         // 互斥锁解决缓存击穿
-        // Shop shop = cacheClient
-        //         .queryWithMutex(RedisConstants.CACHE_SHOP_KEY, id, Shop.class, this::getById, RedisConstants.CACHE_SHOP_TTL, TimeUnit.MINUTES);
+         Shop shop = cacheClient
+                 .queryWithMutex(RedisConstants.CACHE_SHOP_KEY, id, Shop.class, this::getById, RedisConstants.CACHE_SHOP_TTL, TimeUnit.MINUTES);
 
         // 逻辑过期解决缓存击穿
         // Shop shop = cacheClient

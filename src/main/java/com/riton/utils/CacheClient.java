@@ -4,6 +4,8 @@ import cn.hutool.core.util.BooleanUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
@@ -16,11 +18,13 @@ import java.util.function.Function;
 
 @Component
 public class CacheClient {
+    private final RedissonClient redissonClient;
     private final StringRedisTemplate stringRedisTemplate;
     private static final ExecutorService CACHE_REBUILD_EXECUTOR = Executors.newFixedThreadPool(10);//线程池，用于加开线程
 
     @Autowired
-    public CacheClient(StringRedisTemplate redisTemplate) {
+    public CacheClient(RedissonClient redissonClient, StringRedisTemplate redisTemplate) {
+        this.redissonClient = redissonClient;
         this.stringRedisTemplate = redisTemplate;
     }
 
@@ -120,12 +124,24 @@ public class CacheClient {
 
         //缓存未命中，先尝试获取互斥锁
         String lockKey = RedisConstants.LOCK_SHOP_KEY + id;//对应同一个商铺id，需要同一把锁
+        RLock lock = redissonClient.getLock(lockKey);
         R r = null;//查询结果
         try {
-            if (!tryLock(lockKey)) {
+            if (!lock.tryLock(time, unit)) {
                 //获取锁失败
                 Thread.sleep(50);
                 return queryWithMutex(keyPrefix,id,type,dbFallback,time,unit);//递归尝试获取锁
+            }
+
+            //双锁检测防止重复重建
+            resultJSON = stringRedisTemplate.opsForValue().get(key);
+            if(StrUtil.isNotBlank(resultJSON)){//Redis命中
+                return JSONUtil.toBean(resultJSON, type);
+            }
+            //判断value是否为空
+            if(resultJSON != null){
+                //返回缓存的空数据
+                return null;
             }
 
             //成功抢到锁
@@ -141,7 +157,7 @@ public class CacheClient {
         } catch (Exception e) {
             throw new RuntimeException(e);
         } finally {
-            unlock(lockKey);//释放锁
+            lock.unlock();
         }
         return r;//返回查询的数据
     }
@@ -180,7 +196,8 @@ public class CacheClient {
 
         //已经过期，尝试获取锁重建缓存
         String lockKey = RedisConstants.LOCK_SHOP_KEY + id;
-        boolean getLock = tryLock(lockKey);
+        RLock lock = redissonClient.getLock(lockKey);
+        boolean getLock = lock.tryLock();
         if(getLock){
             //在线程池中加入重建缓存的线程
             CACHE_REBUILD_EXECUTOR.submit(() -> {
@@ -190,7 +207,7 @@ public class CacheClient {
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 } finally {
-                    unlock(lockKey);
+                    lock.unlock();
                 }
             });//使用Lambda代替Runnable匿名内部类
         }
