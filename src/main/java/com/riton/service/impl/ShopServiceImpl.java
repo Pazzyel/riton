@@ -4,7 +4,9 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.riton.dto.Result;
 import com.riton.entity.Shop;
+import com.riton.enums.RedisKeyEnum;
 import com.riton.mapper.ShopMapper;
+import com.riton.redis.RedisKeyBuilder;
 import com.riton.service.IShopService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.riton.utils.CacheClient;
@@ -55,7 +57,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
     public Result queryById(Long id) {
         // 缓存空数据解决缓存穿透
         Shop shop = cacheClient
-                .queryWithPassThrough(RedisConstants.CACHE_SHOP_KEY, id, Shop.class, this::getById, RedisConstants.CACHE_SHOP_TTL, TimeUnit.MINUTES);
+                .queryWithPassThrough(RedisKeyBuilder.createRedisKey(RedisKeyEnum.CACHE_SHOP_KEY), id, Shop.class, this::getById, RedisConstants.CACHE_SHOP_TTL, TimeUnit.MINUTES);
 
         // 互斥锁解决缓存击穿
         // Shop shop = cacheClient
