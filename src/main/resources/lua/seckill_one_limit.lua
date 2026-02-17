@@ -16,7 +16,7 @@ end
 
 -- 扣库存
 redis.call('incrby', stockKey, -1)
--- 添加订单
+-- 添加用户集合
 redis.call('sadd', orderKey, userId)
 
 return 0

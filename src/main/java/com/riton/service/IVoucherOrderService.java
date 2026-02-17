@@ -17,22 +17,14 @@ public interface IVoucherOrderService extends IService<VoucherOrder> {
     /**
      * 下单秒杀券
      * @param voucherId 秒杀券的id
-     * @return 如果下单成功，返回订单id
+     * @return 如果预下单成功，返回订单id
      */
     Result seckillVoucher(Long voucherId);
 
-
-//    /**
-//     * 根据秒杀券id尝试创建订单
-//     * @param voucherId 秒杀券id
-//     * @return 成功返回订单id
-//     */
-//    @Transactional
-//    Result createVoucherOrder(Long voucherId);
-
     /**
-     * 根据秒杀券id尝试创建订单
-     * @param voucherOrder 待保存的优惠券订单消息
+     * 下单普通券
+     * @param voucherId 秒杀券的id
+     * @return 如果预下单成功，返回订单id
      */
-    void createVoucherOrder(VoucherOrder voucherOrder);
+    Result voucher(Long voucherId);
 }

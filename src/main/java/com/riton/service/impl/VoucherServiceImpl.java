@@ -2,8 +2,11 @@ package com.riton.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.riton.constants.VoucherTypeConstants;
 import com.riton.dto.Result;
+import com.riton.entity.Shop;
 import com.riton.entity.Voucher;
 import com.riton.mapper.VoucherMapper;
 import com.riton.entity.SeckillVoucher;
@@ -36,6 +39,10 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, Voucher> impl
     private final CacheClient cacheClient;
     private final StringRedisTemplate stringRedisTemplate;
     private final TypeReference<List<Voucher>> voucherListType = new TypeReference<List<Voucher>>() {};
+    private static final Cache<Long, List<Voucher>> SHOP_VOUCHERS__LOCAL_CACHE = Caffeine.newBuilder()
+            .maximumSize(10_000)
+            .expireAfterWrite(10, TimeUnit.MINUTES)
+            .build();
 
     @Autowired
     public VoucherServiceImpl(ISeckillVoucherService seckillVoucherService, StringRedisTemplate stringRedisTemplate, VoucherMapper voucherMapper, CacheClient cacheClient) {
@@ -49,8 +56,21 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, Voucher> impl
 
     @Override
     public Result queryVoucherOfShop(Long shopId) {
+        //任何增/删/改都会使得对应shopId的缓存失效
+        List<Voucher> localVouchers = SHOP_VOUCHERS__LOCAL_CACHE.getIfPresent(shopId);
+        if (localVouchers != null) {
+            return Result.ok(localVouchers);
+        }
 
-        List<Voucher> vouchers = cacheClient.queryWithMutex(RedisConstants.CACHE_SHOP_VOUCHERS_KEY,shopId,voucherListType,voucherMapper::queryVoucherOfShop,RedisConstants.CACHE_SHOP_VOUCHERS_TTL, TimeUnit.MINUTES);
+        List<Voucher> vouchers = cacheClient.queryWithMutex(
+                RedisConstants.CACHE_SHOP_VOUCHERS_KEY,
+                shopId,
+                voucherListType,
+                voucherMapper::queryVoucherOfShop,
+                RedisConstants.CACHE_SHOP_VOUCHERS_TTL,
+                TimeUnit.MINUTES);
+
+        SHOP_VOUCHERS__LOCAL_CACHE.put(shopId, vouchers);
 
         // 查询优惠券信息
         //List<Voucher> vouchers = getBaseMapper().queryVoucherOfShop(shopId);
@@ -79,6 +99,8 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, Voucher> impl
         seckillVoucher.setCreateTime(now);
         seckillVoucher.setUpdateTime(now);
         seckillVoucherService.save(seckillVoucher);
+        cacheClient.invalidate(RedisConstants.CACHE_SHOP_VOUCHERS_KEY, voucher.getShopId());
+        SHOP_VOUCHERS__LOCAL_CACHE.invalidate(voucher.getShopId());
         //保存秒杀库存到Redis中
         stringRedisTemplate.opsForValue().set(RedisConstants.SECKILL_STOCK_KEY + seckillVoucher.getVoucherId(),seckillVoucher.getStock().toString());
     }
@@ -93,6 +115,7 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, Voucher> impl
     }
 
     @Override
+    @Transactional
     public Result updateSeckillVoucher(Voucher voucher) {
         LocalDateTime now = LocalDateTime.now();
         voucher.setUpdateTime(now);
@@ -104,18 +127,21 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, Voucher> impl
         seckillVoucher.setEndTime(voucher.getEndTime());
         seckillVoucher.setUpdateTime(now);
         seckillVoucherService.updateById(seckillVoucher);
-        cacheClient.invalidate(RedisConstants.CACHE_SHOP_VOUCHERS_KEY,voucher.getShopId());
+        cacheClient.invalidate(RedisConstants.CACHE_SHOP_VOUCHERS_KEY, voucher.getShopId());
+        SHOP_VOUCHERS__LOCAL_CACHE.invalidate(voucher.getShopId());
         return Result.ok(voucher.getId());
     }
 
     @Override
+    @Transactional
     public Result deleteVoucher(Long voucherId) {
         Voucher voucher = voucherMapper.selectById(voucherId);
         voucherMapper.deleteById(voucherId);
         if (voucher.getType().equals(VoucherTypeConstants.SECKILL)) {
             seckillVoucherService.removeById(voucherId);
         }
-        cacheClient.invalidate(RedisConstants.CACHE_SHOP_VOUCHERS_KEY,voucher.getShopId());
+        cacheClient.invalidate(RedisConstants.CACHE_SHOP_VOUCHERS_KEY, voucher.getShopId());
+        SHOP_VOUCHERS__LOCAL_CACHE.invalidate(voucher.getShopId());
         return Result.ok(voucherId);
     }
 }
