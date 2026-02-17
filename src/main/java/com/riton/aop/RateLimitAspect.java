@@ -1,10 +1,13 @@
 package com.riton.aop;
 
 import com.riton.annotations.RateLimit;
+import com.riton.dto.Result;
 import com.riton.dto.UserDTO;
 import com.riton.exception.BusinessException;
 import com.riton.utils.UserHolder;
 import org.aspectj.lang.JoinPoint;
+import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
 import org.aspectj.lang.reflect.MethodSignature;
@@ -40,6 +43,22 @@ public class RateLimitAspect {
             throw new BusinessException(rateLimit.message());
         }
     }
+
+//    @Around("@annotation(rateLimit)")
+//    public Result doAround(ProceedingJoinPoint point, RateLimit rateLimit) throws Throwable {
+//        String key = generateRateLimitKey(point, rateLimit);
+//        // 使用Redisson的分布式限流器
+//        RRateLimiter rateLimiter = redissonClient.getRateLimiter(key);
+//        rateLimiter.expire(1, TimeUnit.HOURS); // 1 小时后过期
+//        // 设置限流器参数：每个时间窗口允许的请求数和时间窗口 try只在不存在限流器时设置
+//        rateLimiter.trySetRate(RateType.OVERALL, rateLimit.rate(), rateLimit.rateInterval(), RateIntervalUnit.SECONDS);
+//        // 尝试获取令牌，如果获取失败则限流
+//        if (!rateLimiter.tryAcquire(1)) {
+//            return Result.fail(rateLimit.message());
+//        }
+//        // 获取到令牌，继续执行业务方法
+//        return (Result) point.proceed();
+//    }
 
     /**
      * 根据不同限流方式生成对应Key
