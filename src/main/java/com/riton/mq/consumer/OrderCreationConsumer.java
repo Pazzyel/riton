@@ -69,6 +69,7 @@ public class OrderCreationConsumer implements RocketMQListener<OrderCreationEven
         RLock lock = redissonClient.getLock(RedisConstants.LOCK_ORDER_KEY + userId);
         if(!lock.tryLock()){
             log.error("不允许重复下单");
+            return;
         }
 
         try {

@@ -1,7 +1,9 @@
 package com.riton.controller;
 
 
+import com.riton.annotations.RateLimit;
 import com.riton.dto.Result;
+import com.riton.enums.RateLimitType;
 import com.riton.service.IVoucherOrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,6 +33,7 @@ public class VoucherOrderController {
 
 
     @PostMapping("seckill/{id}")
+    @RateLimit(limitType = RateLimitType.API, rate = 1000)
     public Result seckillVoucher(@PathVariable("id") Long voucherId) {
         return voucherOrderService.seckillVoucher(voucherId);
     }

@@ -62,5 +62,14 @@ public class User implements Serializable {
      */
     private LocalDateTime updateTime;
 
+    /**
+     * 账户余额
+     */
+    private Long money;
+
+    /**
+     * 账户积分
+     */
+    private Long coins;
 
 }
