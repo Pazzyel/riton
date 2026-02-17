@@ -2,6 +2,7 @@ package com.riton.mapper;
 
 import com.riton.entity.SeckillVoucher;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import org.apache.ibatis.annotations.Update;
 
 /**
  * <p>
@@ -13,4 +14,6 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
  */
 public interface SeckillVoucherMapper extends BaseMapper<SeckillVoucher> {
 
+    @Update("UPDATE tb_seckill_voucher SET stock = stock - 1 WHERE stock > 0 AND voucher_id = #{voucherId}")
+    Boolean deductStock(Long voucherId);
 }

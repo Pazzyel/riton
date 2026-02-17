@@ -101,5 +101,8 @@ public class Voucher implements Serializable {
      */
     private LocalDateTime updateTime;
 
-
+    /**
+     * >=0:每日限购数, =-1:只允许购买一次, =-2:不限购
+     */
+    private Long dailyLimit;
 }

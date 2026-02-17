@@ -1,15 +1,21 @@
 package com.riton.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import com.riton.constants.VoucherDailyLimitConstants;
 import com.riton.dto.Result;
 import com.riton.entity.SeckillVoucher;
+import com.riton.entity.Voucher;
 import com.riton.entity.VoucherOrder;
+import com.riton.mapper.VoucherMapper;
 import com.riton.mapper.VoucherOrderMapper;
+import com.riton.mq.MQConstants;
+import com.riton.mq.OrderCreationEvent;
 import com.riton.service.ISeckillVoucherService;
 import com.riton.service.IVoucherOrderService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.riton.utils.RedisIdWorker;
 import com.riton.utils.UserHolder;
+import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +27,9 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -43,9 +51,14 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
 
     private ISeckillVoucherService seckillVoucherService;
 
+    private VoucherMapper voucherMapper;
+
     private StringRedisTemplate stringRedisTemplate;
     //Redission分布式锁客户端
     private RedissonClient redissonClient;
+
+    private RocketMQTemplate rocketMQTemplate;
+
     //秒杀下单的lua脚本，包括检测库存是否充足，检测是否为同一个用户重复下单，扣减库存，添加订单到redis的SET结构，发送到消息队列stream.orders
     //参数： voucherId = ARGV[1] userId = ARGV[2] orderId = ARGV[3]
     //正常返回0，库存不足返回1，重复下单返回2
@@ -56,16 +69,38 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         SECKILL_SCRIPT.setResultType(Long.class);
     }
 
+    private static final DefaultRedisScript<Long> SECKILL_DAILY_LIMIT_SCRIPT;
+    static {
+        SECKILL_DAILY_LIMIT_SCRIPT = new DefaultRedisScript<>();
+        SECKILL_DAILY_LIMIT_SCRIPT.setLocation(new ClassPathResource("lua/seckill_daily_limit.lua"));
+        SECKILL_DAILY_LIMIT_SCRIPT.setResultType(Long.class);
+    }
+
+    private static final DefaultRedisScript<Long> SECKILL_ONE_LIMIT_SCRIPT;
+    static {
+        SECKILL_ONE_LIMIT_SCRIPT = new DefaultRedisScript<>();
+        SECKILL_ONE_LIMIT_SCRIPT.setLocation(new ClassPathResource("lua/seckill_one_limit.lua"));
+        SECKILL_ONE_LIMIT_SCRIPT.setResultType(Long.class);
+    }
+
+    private static final DefaultRedisScript<Long> SECKILL_NO_LIMIT_SCRIPT;
+    static {
+        SECKILL_NO_LIMIT_SCRIPT = new DefaultRedisScript<>();
+        SECKILL_NO_LIMIT_SCRIPT.setLocation(new ClassPathResource("lua/seckill_no_limit.lua"));
+        SECKILL_NO_LIMIT_SCRIPT.setResultType(Long.class);
+    }
+
     @Autowired
-    public VoucherOrderServiceImpl(RedisIdWorker redisIdWorker, ISeckillVoucherService seckillVoucherService, StringRedisTemplate stringRedisTemplate, RedissonClient redissonClient) {
+    public VoucherOrderServiceImpl(RedisIdWorker redisIdWorker, ISeckillVoucherService seckillVoucherService, StringRedisTemplate stringRedisTemplate, RedissonClient redissonClient, RocketMQTemplate rocketMQTemplate) {
         this.redisIdWorker = redisIdWorker;
         this.seckillVoucherService = seckillVoucherService;
         this.stringRedisTemplate = stringRedisTemplate;
         this.redissonClient = redissonClient;
+        this.rocketMQTemplate = rocketMQTemplate;
     }
 
     /**
-     * 下单秒杀券
+     * 下单秒杀券，注意秒杀券一个用户只能买一次，每日限购无效
      * @param voucherId 秒杀券的id
      * @return 如果下单成功，返回订单id
      */
@@ -109,11 +144,16 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         Long userId = UserHolder.getUser().getId();
         //直接生成对应的orderId，创建订单逻辑由消费者线程异步执行
         long orderId = redisIdWorker.nextId("order");
+
         //执行lua脚本
         long result = stringRedisTemplate.execute(SECKILL_SCRIPT, Collections.emptyList(),voucherId.toString(),userId.toString(),String.valueOf(orderId));
         if (result != 0){
             return Result.fail(result == 1 ? "库存不足！" : "不允许重复下单！");
         }
+
+//        OrderMqMessage message = OrderMqMessage.builder().voucherId(voucherId).userId(userId).orderId(orderId).build();
+//        rocketMQTemplate.convertAndSend(MQConstants.ORDER_CREATE_TOPIC, message);
+
         //添加到消息队列的逻辑已经在lua脚本中执行
         return Result.ok(orderId);
     }
@@ -275,5 +315,48 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         } finally {
             lock.unlock();
         }
+    }
+
+    //普通下单
+    public Result voucher(Long voucherId){
+        // 查询优惠券
+        Voucher voucher = voucherMapper.selectById(voucherId);
+
+        //以上部分改为消息队列异步实现，用lua脚本执行生产者操作
+        Long userId = UserHolder.getUser().getId();
+        //直接生成对应的orderId，创建订单逻辑由消费者线程异步执行
+        long orderId = redisIdWorker.nextId("order");
+        //执行lua脚本
+        long result = 0;
+        LocalDate now = LocalDate.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        Long limit = voucher.getDailyLimit();
+        if (limit >= 0) {
+            result = stringRedisTemplate.execute(SECKILL_DAILY_LIMIT_SCRIPT, Collections.emptyList() ,
+                    voucherId.toString(),
+                    userId.toString(),
+                    String.valueOf(orderId),
+                    formatter.format(now),
+                    limit);
+        } else if (limit.equals(VoucherDailyLimitConstants.ONLY_ONE_LIMIT)) {
+            result = stringRedisTemplate.execute(SECKILL_ONE_LIMIT_SCRIPT, Collections.emptyList() ,
+                    voucherId.toString(),
+                    userId.toString(),
+                    String.valueOf(orderId));
+        } else if (limit.equals(VoucherDailyLimitConstants.NO_LIMIT)) {
+            result = stringRedisTemplate.execute(SECKILL_NO_LIMIT_SCRIPT, Collections.emptyList(),
+                    voucherId.toString(),
+                    userId.toString(),
+                    String.valueOf(orderId));
+        }
+
+        if (result != 0){
+            return Result.fail(result == 1 ? "库存不足！" : "不允许重复下单！");
+        }
+
+        OrderCreationEvent message = OrderCreationEvent.builder().orderId(orderId).userId(userId).voucherId(voucherId).isSeckillOrder(false).build();
+        rocketMQTemplate.convertAndSend(MQConstants.ORDER_CREATE_TOPIC, message);
+
+        return Result.ok(orderId);
     }
 }
