@@ -2,6 +2,7 @@ package com.riton.service.impl;
 
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.riton.constants.Constants;
@@ -46,6 +47,8 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
 
     private final BloomFilterFactory bloomFilterFactory;
 
+    private final TypeReference<Shop> type = new TypeReference<Shop>() {};
+
     private static final Cache<Long, Shop> SHOP_LOCAL_CACHE = Caffeine.newBuilder()
             .maximumSize(10_000)
             .expireAfterWrite(10, TimeUnit.MINUTES)
@@ -86,7 +89,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
 
         // 互斥锁解决缓存击穿
          Shop shop = cacheClient
-                 .queryWithMutex(RedisConstants.CACHE_SHOP_KEY, id, Shop.class, this::getById, RedisConstants.CACHE_SHOP_TTL, TimeUnit.MINUTES);
+                 .queryWithMutex(RedisConstants.CACHE_SHOP_KEY, id, type, this::getById, RedisConstants.CACHE_SHOP_TTL, TimeUnit.MINUTES);
 
         // 逻辑过期解决缓存击穿
         // Shop shop = cacheClient

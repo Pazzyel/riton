@@ -4,6 +4,10 @@ import cn.hutool.core.util.BooleanUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,12 +20,13 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
+@Slf4j
 @Component
 public class CacheClient {
     private final RedissonClient redissonClient;
     private final StringRedisTemplate stringRedisTemplate;
     private static final ExecutorService CACHE_REBUILD_EXECUTOR = Executors.newFixedThreadPool(10);//线程池，用于加开线程
-
+    private final ObjectMapper objectMapper = new ObjectMapper();
     @Autowired
     public CacheClient(RedissonClient redissonClient, StringRedisTemplate redisTemplate) {
         this.redissonClient = redissonClient;
@@ -36,7 +41,31 @@ public class CacheClient {
      * @param unit 过期时间单位
      */
     private void set(String key, Object value, Long time, TimeUnit unit) {
-        stringRedisTemplate.opsForValue().set(key, JSONUtil.toJsonStr(value), time, unit);
+        try {
+            stringRedisTemplate.opsForValue().set(key, objectMapper.writeValueAsString(value), time, unit);
+        } catch (JsonProcessingException e) {
+            log.info("在序列化对象 {} 时出现异常", value);
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * 直接移除某个key对应的缓存
+     * @param key 缓存key
+     */
+    private void remove(String key) {
+        stringRedisTemplate.delete(key);
+    }
+
+    /**
+     * 使某个key的缓存无效
+     * @param keyPrefix key前缀
+     * @param id key的id
+     * @param <ID> id类型，例如Long
+     */
+    public <ID> void invalidate(String keyPrefix, ID id) {
+        String key = keyPrefix + id;
+        remove(key);
     }
 
     /**
@@ -48,11 +77,16 @@ public class CacheClient {
      * @param unit 过期时间单位
      */
     //原saveShop2Redis方法
-    public void setWithLogicalExpire(String key, Object value, Long time, TimeUnit unit){
+    public void setWithLogicalExpire(String key, Object value, Long time, TimeUnit unit) {
         RedisData redisData = new RedisData();
         redisData.setData(value);
         redisData.setExpireTime(LocalDateTime.now().plusSeconds(unit.toSeconds(time)));
-        stringRedisTemplate.opsForValue().set(key, JSONUtil.toJsonStr(redisData));
+        try {
+            stringRedisTemplate.opsForValue().set(key, objectMapper.writeValueAsString(redisData));
+        } catch (JsonProcessingException e) {
+            log.info("在序列化对象 {} 时出现异常", redisData);
+            throw new RuntimeException(e);
+        }
     }
 
     /**
@@ -68,13 +102,18 @@ public class CacheClient {
      * @param <R> 查询数据的类型泛型
      * @param <ID> id的类型泛型
      */
-    public <R,ID> R queryWithPassThrough(String keyPrefix, ID id, Class<R> type,
-                                         Function<ID, R> dbFallback, Long time, TimeUnit unit){
+    public <R,ID> R queryWithPassThrough(String keyPrefix, ID id, TypeReference<R> type,
+                                         Function<ID, R> dbFallback, Long time, TimeUnit unit) {
         String key = keyPrefix + id;
         String json = stringRedisTemplate.opsForValue().get(key);
         if(StrUtil.isNotBlank(json)){
             //已经缓存且有数据，直接返回
-            return JSONUtil.toBean(json, type);
+            try {
+                return objectMapper.readValue(json, type);
+            } catch (JsonProcessingException e) {
+                log.info("在反序列化JSON {} 时出现异常", json);
+                throw new RuntimeException(e);
+            }
         }
         //如果命中的是空数据
         if(json != null){
@@ -93,7 +132,12 @@ public class CacheClient {
             return null;
         }
         //有数据，缓存入redis
-        stringRedisTemplate.opsForValue().set(key, JSONUtil.toJsonStr(r), time, unit);
+        try {
+            stringRedisTemplate.opsForValue().set(key, objectMapper.writeValueAsString(r), time, unit);
+        } catch (JsonProcessingException e) {
+            log.info("在序列化对象 {} 时出现异常", r);
+            throw new RuntimeException(e);
+        }
         return r;
     }
 
@@ -109,12 +153,17 @@ public class CacheClient {
      * @param <R> 查询数据的类型泛型
      * @param <ID> id的类型泛型
      */
-    public <ID,R> R queryWithMutex(String keyPrefix, ID id, Class<R> type,
-                                   Function<ID, R> dbFallback, Long time, TimeUnit unit){
+    public <ID,R> R queryWithMutex(String keyPrefix, ID id, TypeReference<R> type,
+                                   Function<ID, R> dbFallback, Long time, TimeUnit unit) {
         String key = keyPrefix + id;
         String resultJSON = stringRedisTemplate.opsForValue().get(key);
         if(StrUtil.isNotBlank(resultJSON)){//Redis命中
-            return JSONUtil.toBean(resultJSON, type);
+            try {
+                return objectMapper.readValue(resultJSON, type);
+            } catch (JsonProcessingException e) {
+                log.info("在反序列化JSON {} 时出现异常", resultJSON);
+                throw new RuntimeException(e);
+            }
         }
         //判断value是否为空
         if(resultJSON != null){
@@ -136,7 +185,12 @@ public class CacheClient {
             //双锁检测防止重复重建
             resultJSON = stringRedisTemplate.opsForValue().get(key);
             if(StrUtil.isNotBlank(resultJSON)){//Redis命中
-                return JSONUtil.toBean(resultJSON, type);
+                try {
+                    return objectMapper.readValue(resultJSON, type);
+                } catch (JsonProcessingException e) {
+                    log.info("在反序列化JSON {} 时出现异常", resultJSON);
+                    throw new RuntimeException(e);
+                }
             }
             //判断value是否为空
             if(resultJSON != null){
@@ -165,6 +219,7 @@ public class CacheClient {
     /**
      * 逻辑过期主要用于热点数据，会在redis预先缓存这些热点key
      * 根据指定的key查询缓存，并反序列化为指定类型，需要利用逻辑过期解决缓存击穿问题
+     * WARN: 此方法可能无法适应List<T>类型的数据
      * @param keyPrefix 缓存key的前缀
      * @param id 缓存条目的id
      * @param type 查询数据的类型

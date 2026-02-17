@@ -1,6 +1,7 @@
 package com.riton.controller;
 
 
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.riton.dto.Result;
 import com.riton.entity.Voucher;
 import com.riton.service.IVoucherService;
@@ -39,7 +40,7 @@ public class VoucherController {
      * @param voucher 优惠券信息，包含秒杀信息
      * @return 优惠券id
      */
-    @PostMapping("seckill")
+    @PostMapping("/seckill")
     public Result addSeckillVoucher(@RequestBody Voucher voucher) {
         voucherService.addSeckillVoucher(voucher);
         return Result.ok(voucher.getId());
@@ -54,6 +55,22 @@ public class VoucherController {
     public Result queryVoucherOfShop(@PathVariable("shopId") Long shopId) {
        return voucherService.queryVoucherOfShop(shopId);
     }
+
+    @PutMapping
+    public Result updateVoucher(@RequestBody Voucher voucher) {
+        return voucherService.updateVoucher(voucher);
+    }
+
+    @PutMapping("/seckill")
+    public Result updateSeckillVoucher(@RequestBody Voucher voucher) {
+        return voucherService.updateSeckillVoucher(voucher);
+    }
+
+    @DeleteMapping
+    public Result deleteVoucher(Long voucherId) {
+        return voucherService.deleteVoucher(voucherId);
+    }
+
 
 
 }
