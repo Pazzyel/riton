@@ -31,3 +31,29 @@ rocketmq:
   name-server: ${riton.rocketmq.address}
   producer:
     group: ${riton.rocketmq.group}
+
+pay:
+  refund-reason: order status invalid when payment callback
+  alipay:
+    # 示例配置：请替换为你自己的支付宝应用配置
+    gateway-url: https://openapi.alipay.com/gateway.do
+    app-id: your_alipay_app_id
+    private-key: |
+      -----BEGIN PRIVATE KEY-----
+      your_alipay_private_key
+      -----END PRIVATE KEY-----
+    alipay-public-key: |
+      -----BEGIN PUBLIC KEY-----
+      your_alipay_public_key
+      -----END PUBLIC KEY-----
+    charset: UTF-8
+    sign-type: RSA2
+    notify-url: https://your-domain.com/pay/callback/alipay
+  wechat:
+    # 示例配置：请替换为你自己的微信商户配置
+    mch-id: your_wechat_mch_id
+    app-id: your_wechat_app_id
+    private-key-path: /path/to/apiclient_key.pem
+    merchant-serial-number: your_wechat_merchant_serial_number
+    api-v3-key: your_wechat_api_v3_key
+    notify-url: https://your-domain.com/pay/callback/wechat
