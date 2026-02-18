@@ -4,16 +4,16 @@ spring:
   profiles:
     active: dev
   application:
-    name: hmdp
+    name: riton
   datasource:
-    driver-class-name: ${dianping.datasource.driver-class-name}
-    url: ${dianping.datasource.url}
-    username: ${dianping.datasource.username}
-    password: ${dianping.datasource.password}
+    driver-class-name: ${riton.datasource.driver-class-name}
+    url: ${riton.datasource.url}
+    username: ${riton.datasource.username}
+    password: ${riton.datasource.password}
   redis:
-    host: ${dianping.redis.host}
-    port: ${dianping.redis.port}
-    password: ${dianping.redis.password}
+    host: ${riton.redis.host}
+    port: ${riton.redis.port}
+    password: ${riton.redis.password}
     lettuce:
       pool:
         max-active: 10
@@ -23,7 +23,11 @@ spring:
   jackson:
     default-property-inclusion: non_null # JSON处理时忽略非空字段
 mybatis-plus:
-  type-aliases-package: com.hmdp.entity # 别名扫描包
+  type-aliases-package: com.riton.entity # 别名扫描包
 logging:
   level:
-    com.hmdp: debug
+    com.riton: debug
+rocketmq:
+  name-server: ${riton.rocketmq.address}
+  producer:
+    group: ${riton.rocketmq.group}

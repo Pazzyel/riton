@@ -3,7 +3,7 @@ package com.riton.interceptor;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import com.riton.dto.UserDTO;
-import com.riton.utils.RedisConstants;
+import com.riton.constants.RedisConstants;
 import com.riton.utils.UserHolder;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.servlet.HandlerInterceptor;

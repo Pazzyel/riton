@@ -2,7 +2,7 @@ package com.riton;
 
 import com.riton.entity.Shop;
 import com.riton.service.IShopService;
-import com.riton.utils.RedisConstants;
+import com.riton.constants.RedisConstants;
 import com.riton.utils.RedisIdWorker;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +20,7 @@ import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 @SpringBootTest
-class HmDianPingApplicationTests {
+class RitonApplicationTests {
 
     private ExecutorService es = Executors.newFixedThreadPool(16);
 

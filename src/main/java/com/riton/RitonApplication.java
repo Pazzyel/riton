@@ -8,10 +8,10 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
 @MapperScan("com.riton.mapper")
 @SpringBootApplication
 @EnableAspectJAutoProxy(exposeProxy = true)
-public class HmDianPingApplication {
+public class RitonApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(HmDianPingApplication.class, args);
+        SpringApplication.run(RitonApplication.class, args);
     }
 
 }

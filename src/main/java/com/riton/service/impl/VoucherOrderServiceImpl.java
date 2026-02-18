@@ -7,7 +7,7 @@ import com.riton.entity.Voucher;
 import com.riton.entity.VoucherOrder;
 import com.riton.mapper.VoucherMapper;
 import com.riton.mapper.VoucherOrderMapper;
-import com.riton.mq.MQConstants;
+import com.riton.constants.MQConstants;
 import com.riton.mq.OrderCreationEvent;
 import com.riton.service.ISeckillVoucherService;
 import com.riton.service.IVoucherOrderService;

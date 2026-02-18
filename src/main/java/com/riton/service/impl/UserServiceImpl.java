@@ -11,7 +11,7 @@ import com.riton.dto.UserDTO;
 import com.riton.entity.User;
 import com.riton.mapper.UserMapper;
 import com.riton.service.IUserService;
-import com.riton.utils.RedisConstants;
+import com.riton.constants.RedisConstants;
 import com.riton.utils.RegexUtils;
 import com.riton.utils.SystemConstants;
 import com.riton.utils.UserHolder;

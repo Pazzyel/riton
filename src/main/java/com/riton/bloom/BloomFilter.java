@@ -1,4 +1,4 @@
-﻿package com.riton.bloom;
+package com.riton.bloom;
 
 import lombok.Getter;
 import org.redisson.api.RBloomFilter;

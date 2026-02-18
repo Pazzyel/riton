@@ -1,4 +1,4 @@
-package com.riton.mq;
+package com.riton.constants;
 
 public class MQConstants {
     public static final String ORDER_CREATE_TOPIC = "order-create-topic";

@@ -13,7 +13,7 @@ import com.riton.service.IShopService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.riton.bloom.BloomFilterFactory;
 import com.riton.utils.CacheClient;
-import com.riton.utils.RedisConstants;
+import com.riton.constants.RedisConstants;
 import com.riton.utils.SystemConstants;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;

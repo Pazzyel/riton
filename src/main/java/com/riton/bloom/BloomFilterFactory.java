@@ -1,4 +1,4 @@
-﻿package com.riton.bloom;
+package com.riton.bloom;
 
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;

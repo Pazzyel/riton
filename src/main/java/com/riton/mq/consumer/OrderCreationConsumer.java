@@ -2,13 +2,12 @@ package com.riton.mq.consumer;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.riton.constants.OrderStatutesConstants;
-import com.riton.entity.SeckillVoucher;
 import com.riton.entity.VoucherOrder;
 import com.riton.mapper.SeckillVoucherMapper;
 import com.riton.mapper.VoucherOrderMapper;
-import com.riton.mq.MQConstants;
+import com.riton.constants.MQConstants;
 import com.riton.mq.OrderCreationEvent;
-import com.riton.utils.RedisConstants;
+import com.riton.constants.RedisConstants;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;

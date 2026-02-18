@@ -14,7 +14,7 @@ import com.riton.service.IBlogService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.riton.service.IFollowService;
 import com.riton.service.IUserService;
-import com.riton.utils.RedisConstants;
+import com.riton.constants.RedisConstants;
 import com.riton.utils.SystemConstants;
 import com.riton.utils.UserHolder;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -1,4 +1,4 @@
-package com.riton.utils;
+package com.riton.constants;
 
 import java.util.Random;
 
