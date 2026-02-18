@@ -10,4 +10,34 @@
         LEFT JOIN  tb_seckill_voucher sv ON v.id = sv.voucher_id
         WHERE v.shop_id = #{shopId} AND v.status = 1
     </select>
+
+    <select id="queryVoucherIdsOfShop" resultType="java.lang.Long" parameterType="java.lang.Long">
+        SELECT v.`id`
+        FROM tb_voucher v
+        WHERE v.shop_id = #{shopId} AND v.status = 1
+        ORDER BY v.update_time DESC
+    </select>
+
+    <select id="queryVoucherById" resultType="com.riton.entity.Voucher" parameterType="java.lang.Long">
+        SELECT
+            v.`id`, v.`shop_id`, v.`title`, v.`sub_title`, v.`rules`, v.`pay_value`,
+            v.`actual_value`, v.`type`, sv.`stock` , sv.begin_time , sv.end_time
+        FROM tb_voucher v
+        LEFT JOIN  tb_seckill_voucher sv ON v.id = sv.voucher_id
+        WHERE v.id = #{voucherId} AND v.status = 1
+    </select>
+
+    <select id="queryVoucherByIds" resultType="com.riton.entity.Voucher">
+        SELECT
+            v.`id`, v.`shop_id`, v.`title`, v.`sub_title`, v.`rules`, v.`pay_value`,
+            v.`actual_value`, v.`type`, sv.`stock` , sv.begin_time , sv.end_time
+        FROM tb_voucher v
+        LEFT JOIN  tb_seckill_voucher sv ON v.id = sv.voucher_id
+        WHERE v.status = 1
+          AND v.id IN
+          <foreach collection="ids" item="id" open="(" separator="," close=")">
+              #{id}
+          </foreach>
+        ORDER BY v.update_time DESC
+    </select>
 </mapper>
