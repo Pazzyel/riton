@@ -7,6 +7,7 @@ import cn.hutool.json.JSONUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.riton.constants.RedisConstants;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
@@ -27,7 +28,11 @@ public class CacheClient {
     private final RedissonClient redissonClient;
     private final StringRedisTemplate stringRedisTemplate;
     private static final ExecutorService CACHE_REBUILD_EXECUTOR = Executors.newFixedThreadPool(10);//线程池，用于加开线程
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+    static {
+        objectMapper.registerModule(new JavaTimeModule());
+    }
+
     @Autowired
     public CacheClient(RedissonClient redissonClient, StringRedisTemplate redisTemplate) {
         this.redissonClient = redissonClient;

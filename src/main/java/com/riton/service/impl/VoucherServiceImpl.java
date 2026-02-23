@@ -3,6 +3,7 @@ package com.riton.service.impl;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.riton.constants.RedisConstants;
@@ -14,6 +15,7 @@ import com.riton.mapper.VoucherMapper;
 import com.riton.service.ISeckillVoucherService;
 import com.riton.service.IVoucherService;
 import com.riton.utils.CacheClient;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -37,6 +39,7 @@ import java.util.stream.Collectors;
  * @since 2021-12-22
  */
 @Service
+@Slf4j
 public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, Voucher> implements IVoucherService {
 
     private final VoucherMapper voucherMapper;
@@ -44,7 +47,10 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, Voucher> impl
     private final CacheClient cacheClient;
     private final StringRedisTemplate stringRedisTemplate;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final static ObjectMapper objectMapper = new ObjectMapper();
+    static {
+        objectMapper.registerModule(new JavaTimeModule());
+    }
     private final TypeReference<List<Long>> voucherIdListType = new TypeReference<List<Long>>() {};
     private final TypeReference<Voucher> voucherType = new TypeReference<Voucher>() {};
 
@@ -74,6 +80,9 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, Voucher> impl
     @Override
     public Result queryVoucherOfShop(Long shopId) {
         List<Long> voucherIds = SHOP_VOUCHER_IDS_LOCAL_CACHE.getIfPresent(shopId);
+        if (voucherIds != null) {
+            log.info("本地缓存命中：查询商铺:{} 的所有优惠券{}", shopId, voucherIds);
+        }
         if (voucherIds == null) {
             voucherIds = cacheClient.queryWithMutex(
                     RedisConstants.CACHE_SHOP_VOUCHERS_KEY,

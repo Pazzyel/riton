@@ -72,7 +72,7 @@ public class OrderCreationConsumer implements RocketMQListener<OrderCreationEven
         }
 
         try {
-            int count = voucherOrderMapper.selectCount(new QueryWrapper<VoucherOrder>().eq("voucher_id", voucherId).eq("user_id", userId));
+            long count = voucherOrderMapper.selectCount(new QueryWrapper<VoucherOrder>().eq("voucher_id", voucherId).eq("user_id", userId));
             if (count > 0) {
                 log.error("用户已经购买过一次！");
                 return;

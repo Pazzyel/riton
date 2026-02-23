@@ -14,9 +14,9 @@ import com.riton.service.IVoucherOrderService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.riton.utils.RedisIdWorker;
 import com.riton.utils.UserHolder;
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
@@ -38,18 +38,26 @@ import java.util.Collections;
  */
 @Service
 @Slf4j
-@AllArgsConstructor
 public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, VoucherOrder> implements IVoucherOrderService {
     //全局唯一ID生成器
-    private RedisIdWorker redisIdWorker;
+    private final RedisIdWorker redisIdWorker;
 
-    private ISeckillVoucherService seckillVoucherService;
+    private final ISeckillVoucherService seckillVoucherService;
 
-    private VoucherMapper voucherMapper;
+    private final VoucherMapper voucherMapper;
 
-    private StringRedisTemplate stringRedisTemplate;
+    private final StringRedisTemplate stringRedisTemplate;
 
-    private RocketMQTemplate rocketMQTemplate;
+    private final RocketMQTemplate rocketMQTemplate;
+
+    @Autowired
+    public VoucherOrderServiceImpl(RedisIdWorker redisIdWorker, ISeckillVoucherService seckillVoucherService, VoucherMapper voucherMapper, StringRedisTemplate stringRedisTemplate, RocketMQTemplate rocketMQTemplate) {
+        this.redisIdWorker = redisIdWorker;
+        this.seckillVoucherService = seckillVoucherService;
+        this.voucherMapper = voucherMapper;
+        this.stringRedisTemplate = stringRedisTemplate;
+        this.rocketMQTemplate = rocketMQTemplate;
+    }
 
     //秒杀下单的lua脚本，包括检测库存是否充足，检测是否为同一个用户重复下单，扣减库存，添加订单到redis的SET结构，发送到消息队列stream.orders
     //参数： voucherId = ARGV[1] userId = ARGV[2] orderId = ARGV[3]

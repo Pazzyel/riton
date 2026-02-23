@@ -3,6 +3,7 @@ package com.riton.redis;
 import com.riton.enums.RedisKeyEnum;
 import com.riton.utils.SpringUtils;
 
+@Deprecated
 public class RedisKeyBuilder {
     /**
      * 实际使用的key

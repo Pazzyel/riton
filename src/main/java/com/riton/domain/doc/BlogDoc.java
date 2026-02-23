@@ -1,9 +1,9 @@
 package com.riton.domain.doc;
 
 import com.baomidou.mybatisplus.annotation.TableField;
+import lombok.Data;
 
-import java.time.LocalDateTime;
-
+@Data
 public class BlogDoc {
     private Long id;
     /**

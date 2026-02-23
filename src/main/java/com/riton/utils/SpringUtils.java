@@ -5,6 +5,7 @@ import lombok.Getter;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
 
+@Deprecated
 public class SpringUtils implements ApplicationContextInitializer<ConfigurableApplicationContext> {
 
     private static ConfigurableApplicationContext configurableApplicationContext;

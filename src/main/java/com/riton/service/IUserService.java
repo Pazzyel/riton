@@ -5,7 +5,7 @@ import com.riton.domain.dto.LoginFormDTO;
 import com.riton.domain.dto.Result;
 import com.riton.domain.entity.User;
 
-import javax.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpSession;
 
 /**
  * <p>

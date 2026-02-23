@@ -78,7 +78,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
         }
 
         // 布隆过滤器判断空值
-        if (bloomFilterFactory.getBloomFilter(Constants.BLOOM_FILTER_HANDLER_SHOP).contains(String.valueOf(id))) {
+        if (!bloomFilterFactory.getBloomFilter(Constants.BLOOM_FILTER_HANDLER_SHOP).contains(String.valueOf(id))) {
             log.info("查询商铺 布隆过滤器判断不存在 商铺id : {}",id);
             return Result.fail("店铺不存在！");
         }

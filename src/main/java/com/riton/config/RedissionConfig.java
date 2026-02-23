@@ -9,9 +9,9 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class RedissionConfig {
-    @Value("redis://" + "${spring.redis.host}" + ":" + "${spring.redis.port}")
+    @Value("redis://" + "${spring.data.redis.host}" + ":" + "${spring.data.redis.port}")
     private String host;
-    @Value("${spring.redis.password}")
+    @Value("${spring.data.redis.password}")
     private String password;
 
     @Bean

@@ -7,9 +7,8 @@ import com.riton.domain.dto.Result;
 import com.riton.domain.entity.Shop;
 import com.riton.service.IShopService;
 import com.riton.utils.SystemConstants;
+import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.*;
-
-import javax.annotation.Resource;
 
 /**
  * <p>

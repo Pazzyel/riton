@@ -1,5 +1,5 @@
 server:
-  port: 8081
+  port: 8045
 spring:
   profiles:
     active: dev
@@ -10,16 +10,17 @@ spring:
     url: ${riton.datasource.url}
     username: ${riton.datasource.username}
     password: ${riton.datasource.password}
-  redis:
-    host: ${riton.redis.host}
-    port: ${riton.redis.port}
-    password: ${riton.redis.password}
-    lettuce:
-      pool:
-        max-active: 10
-        max-idle: 10
-        min-idle: 1
-        time-between-eviction-runs: 10s
+  data:
+    redis:
+      host: ${riton.redis.host}
+      port: ${riton.redis.port}
+      password: ${riton.redis.password}
+      lettuce:
+        pool:
+          max-active: 10
+          max-idle: 10
+          min-idle: 1
+          time-between-eviction-runs: 10s
   jackson:
     default-property-inclusion: non_null # JSON处理时忽略非空字段
 mybatis-plus:
@@ -57,3 +58,9 @@ pay:
     merchant-serial-number: your_wechat_merchant_serial_number
     api-v3-key: your_wechat_api_v3_key
     notify-url: https://your-domain.com/pay/callback/wechat
+
+riton:
+  elasticsearch:
+    host: localhost
+    port: 9200
+    scheme: http
