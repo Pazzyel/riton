@@ -1,8 +1,8 @@
 package com.riton.controller;
 
 
-import com.riton.dto.Result;
-import com.riton.entity.Blog;
+import com.riton.domain.dto.Result;
+import com.riton.domain.entity.Blog;
 import com.riton.service.IBlogService;
 import org.springframework.web.bind.annotation.*;
 

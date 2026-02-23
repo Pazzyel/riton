@@ -3,8 +3,8 @@ package com.riton.controller;
 
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.riton.dto.Result;
-import com.riton.entity.Shop;
+import com.riton.domain.dto.Result;
+import com.riton.domain.entity.Shop;
 import com.riton.service.IShopService;
 import com.riton.utils.SystemConstants;
 import org.springframework.web.bind.annotation.*;

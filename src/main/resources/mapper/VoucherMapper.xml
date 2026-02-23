@@ -2,7 +2,7 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.riton.mapper.VoucherMapper">
 
-    <select id="queryVoucherOfShop" resultType="com.riton.entity.Voucher" parameterType="java.lang.Long">
+    <select id="queryVoucherOfShop" resultType="com.riton.domain.entity.Voucher" parameterType="java.lang.Long">
         SELECT
             v.`id`, v.`shop_id`, v.`title`, v.`sub_title`, v.`rules`, v.`pay_value`,
             v.`actual_value`, v.`type`, sv.`stock` , sv.begin_time , sv.end_time
@@ -18,7 +18,7 @@
         ORDER BY v.update_time DESC
     </select>
 
-    <select id="queryVoucherById" resultType="com.riton.entity.Voucher" parameterType="java.lang.Long">
+    <select id="queryVoucherById" resultType="com.riton.domain.entity.Voucher" parameterType="java.lang.Long">
         SELECT
             v.`id`, v.`shop_id`, v.`title`, v.`sub_title`, v.`rules`, v.`pay_value`,
             v.`actual_value`, v.`type`, sv.`stock` , sv.begin_time , sv.end_time
@@ -27,7 +27,7 @@
         WHERE v.id = #{voucherId} AND v.status = 1
     </select>
 
-    <select id="queryVoucherByIds" resultType="com.riton.entity.Voucher">
+    <select id="queryVoucherByIds" resultType="com.riton.domain.entity.Voucher">
         SELECT
             v.`id`, v.`shop_id`, v.`title`, v.`sub_title`, v.`rules`, v.`pay_value`,
             v.`actual_value`, v.`type`, sv.`stock` , sv.begin_time , sv.end_time

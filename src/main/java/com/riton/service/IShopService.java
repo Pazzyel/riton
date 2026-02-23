@@ -1,7 +1,7 @@
 package com.riton.service;
 
-import com.riton.dto.Result;
-import com.riton.entity.Shop;
+import com.riton.domain.dto.Result;
+import com.riton.domain.entity.Shop;
 import com.baomidou.mybatisplus.extension.service.IService;
 import org.springframework.transaction.annotation.Transactional;
 

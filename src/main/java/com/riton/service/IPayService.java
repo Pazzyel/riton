@@ -1,7 +1,7 @@
 package com.riton.service;
 
-import com.riton.dto.PaymentDTO;
-import com.riton.dto.Result;
+import com.riton.domain.dto.PaymentDTO;
+import com.riton.domain.dto.Result;
 
 import java.util.Map;
 

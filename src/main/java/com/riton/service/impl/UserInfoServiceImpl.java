@@ -1,6 +1,6 @@
 package com.riton.service.impl;
 
-import com.riton.entity.UserInfo;
+import com.riton.domain.entity.UserInfo;
 import com.riton.mapper.UserInfoMapper;
 import com.riton.service.IUserInfoService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;

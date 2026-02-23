@@ -2,7 +2,7 @@ package com.riton.controller;
 
 
 import com.riton.annotations.RateLimit;
-import com.riton.dto.Result;
+import com.riton.domain.dto.Result;
 import com.riton.enums.RateLimitType;
 import com.riton.service.IVoucherOrderService;
 import org.springframework.beans.factory.annotation.Autowired;

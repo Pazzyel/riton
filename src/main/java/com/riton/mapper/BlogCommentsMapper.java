@@ -1,6 +1,6 @@
 package com.riton.mapper;
 
-import com.riton.entity.BlogComments;
+import com.riton.domain.entity.BlogComments;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 
 /**

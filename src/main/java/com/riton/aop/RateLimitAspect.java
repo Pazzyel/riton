@@ -1,13 +1,10 @@
 package com.riton.aop;
 
 import com.riton.annotations.RateLimit;
-import com.riton.dto.Result;
-import com.riton.dto.UserDTO;
+import com.riton.domain.dto.UserDTO;
 import com.riton.exception.BusinessException;
 import com.riton.utils.UserHolder;
 import org.aspectj.lang.JoinPoint;
-import org.aspectj.lang.ProceedingJoinPoint;
-import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
 import org.aspectj.lang.reflect.MethodSignature;

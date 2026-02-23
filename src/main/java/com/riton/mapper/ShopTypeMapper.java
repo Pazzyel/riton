@@ -1,6 +1,6 @@
 package com.riton.mapper;
 
-import com.riton.entity.ShopType;
+import com.riton.domain.entity.ShopType;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 
 /**

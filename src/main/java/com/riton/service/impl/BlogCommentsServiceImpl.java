@@ -1,6 +1,6 @@
 package com.riton.service.impl;
 
-import com.riton.entity.BlogComments;
+import com.riton.domain.entity.BlogComments;
 import com.riton.mapper.BlogCommentsMapper;
 import com.riton.service.IBlogCommentsService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;

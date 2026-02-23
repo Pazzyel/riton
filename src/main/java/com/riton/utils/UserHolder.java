@@ -1,6 +1,6 @@
 package com.riton.utils;
 
-import com.riton.dto.UserDTO;
+import com.riton.domain.dto.UserDTO;
 
 public class UserHolder {
     private static final ThreadLocal<UserDTO> tl = new ThreadLocal<>();

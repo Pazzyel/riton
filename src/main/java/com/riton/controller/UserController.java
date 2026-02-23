@@ -2,11 +2,11 @@ package com.riton.controller;
 
 
 import cn.hutool.core.bean.BeanUtil;
-import com.riton.dto.LoginFormDTO;
-import com.riton.dto.Result;
-import com.riton.dto.UserDTO;
-import com.riton.entity.User;
-import com.riton.entity.UserInfo;
+import com.riton.domain.dto.LoginFormDTO;
+import com.riton.domain.dto.Result;
+import com.riton.domain.dto.UserDTO;
+import com.riton.domain.entity.User;
+import com.riton.domain.entity.UserInfo;
 import com.riton.service.IUserInfoService;
 import com.riton.service.IUserService;
 import lombok.extern.slf4j.Slf4j;

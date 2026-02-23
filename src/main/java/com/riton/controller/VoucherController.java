@@ -1,9 +1,8 @@
 package com.riton.controller;
 
 
-import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
-import com.riton.dto.Result;
-import com.riton.entity.Voucher;
+import com.riton.domain.dto.Result;
+import com.riton.domain.entity.Voucher;
 import com.riton.service.IVoucherService;
 import org.springframework.web.bind.annotation.*;
 

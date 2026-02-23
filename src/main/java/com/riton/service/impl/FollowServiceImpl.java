@@ -2,9 +2,9 @@ package com.riton.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.riton.dto.Result;
-import com.riton.dto.UserDTO;
-import com.riton.entity.Follow;
+import com.riton.domain.dto.Result;
+import com.riton.domain.dto.UserDTO;
+import com.riton.domain.entity.Follow;
 import com.riton.mapper.FollowMapper;
 import com.riton.service.IFollowService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;

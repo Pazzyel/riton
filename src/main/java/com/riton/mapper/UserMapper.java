@@ -1,6 +1,6 @@
 package com.riton.mapper;
 
-import com.riton.entity.User;
+import com.riton.domain.entity.User;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 
 /**

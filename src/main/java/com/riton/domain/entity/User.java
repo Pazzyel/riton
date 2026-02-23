@@ -1,4 +1,4 @@
-package com.riton.entity;
+package com.riton.domain.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;

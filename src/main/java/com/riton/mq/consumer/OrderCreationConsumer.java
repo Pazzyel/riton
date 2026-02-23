@@ -2,7 +2,7 @@ package com.riton.mq.consumer;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.riton.constants.OrderStatutesConstants;
-import com.riton.entity.VoucherOrder;
+import com.riton.domain.entity.VoucherOrder;
 import com.riton.mapper.SeckillVoucherMapper;
 import com.riton.mapper.VoucherOrderMapper;
 import com.riton.constants.MQConstants;

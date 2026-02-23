@@ -1,6 +1,6 @@
 package com.riton.mapper;
 
-import com.riton.entity.Follow;
+import com.riton.domain.entity.Follow;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 
 /**

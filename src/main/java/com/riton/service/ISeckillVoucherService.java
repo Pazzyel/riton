@@ -1,6 +1,6 @@
 package com.riton.service;
 
-import com.riton.entity.SeckillVoucher;
+import com.riton.domain.entity.SeckillVoucher;
 import com.baomidou.mybatisplus.extension.service.IService;
 
 /**

@@ -1,6 +1,6 @@
 package com.riton.service;
 
-import com.riton.entity.ShopType;
+import com.riton.domain.entity.ShopType;
 import com.baomidou.mybatisplus.extension.service.IService;
 
 /**

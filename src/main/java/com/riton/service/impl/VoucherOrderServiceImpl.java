@@ -1,10 +1,10 @@
 package com.riton.service.impl;
 
 import com.riton.constants.VoucherDailyLimitConstants;
-import com.riton.dto.Result;
-import com.riton.entity.SeckillVoucher;
-import com.riton.entity.Voucher;
-import com.riton.entity.VoucherOrder;
+import com.riton.domain.dto.Result;
+import com.riton.domain.entity.SeckillVoucher;
+import com.riton.domain.entity.Voucher;
+import com.riton.domain.entity.VoucherOrder;
 import com.riton.mapper.VoucherMapper;
 import com.riton.mapper.VoucherOrderMapper;
 import com.riton.constants.MQConstants;

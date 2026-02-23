@@ -1,6 +1,6 @@
 package com.riton;
 
-import com.riton.entity.Shop;
+import com.riton.domain.entity.Shop;
 import com.riton.service.IShopService;
 import com.riton.constants.RedisConstants;
 import com.riton.utils.RedisIdWorker;

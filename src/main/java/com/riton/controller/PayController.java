@@ -1,7 +1,7 @@
 package com.riton.controller;
 
-import com.riton.dto.PaymentDTO;
-import com.riton.dto.Result;
+import com.riton.domain.dto.PaymentDTO;
+import com.riton.domain.dto.Result;
 import com.riton.service.IPayService;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;

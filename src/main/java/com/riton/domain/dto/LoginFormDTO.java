@@ -1,4 +1,4 @@
-package com.riton.dto;
+package com.riton.domain.dto;
 
 import lombok.Data;
 

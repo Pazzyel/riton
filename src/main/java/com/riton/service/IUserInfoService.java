@@ -1,6 +1,6 @@
 package com.riton.service;
 
-import com.riton.entity.UserInfo;
+import com.riton.domain.entity.UserInfo;
 import com.baomidou.mybatisplus.extension.service.IService;
 
 /**

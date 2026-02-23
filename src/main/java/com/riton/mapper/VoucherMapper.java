@@ -1,7 +1,7 @@
 package com.riton.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.riton.entity.Voucher;
+import com.riton.domain.entity.Voucher;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;

@@ -1,8 +1,8 @@
 package com.riton.controller;
 
 
-import com.riton.dto.Result;
-import com.riton.entity.ShopType;
+import com.riton.domain.dto.Result;
+import com.riton.domain.entity.ShopType;
 import com.riton.service.IShopTypeService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;

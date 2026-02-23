@@ -1,6 +1,6 @@
 package com.riton.mapper;
 
-import com.riton.entity.SeckillVoucher;
+import com.riton.domain.entity.SeckillVoucher;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Update;
 

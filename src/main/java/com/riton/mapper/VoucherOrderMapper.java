@@ -1,6 +1,6 @@
 package com.riton.mapper;
 
-import com.riton.entity.VoucherOrder;
+import com.riton.domain.entity.VoucherOrder;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 
 /**

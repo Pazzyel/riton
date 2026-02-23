@@ -2,7 +2,7 @@ package com.riton.controller;
 
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.StrUtil;
-import com.riton.dto.Result;
+import com.riton.domain.dto.Result;
 import com.riton.utils.SystemConstants;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;

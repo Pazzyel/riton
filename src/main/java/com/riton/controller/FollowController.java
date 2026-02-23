@@ -1,7 +1,7 @@
 package com.riton.controller;
 
 
-import com.riton.dto.Result;
+import com.riton.domain.dto.Result;
 import com.riton.service.IFollowService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;

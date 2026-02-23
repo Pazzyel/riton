@@ -1,6 +1,6 @@
 package com.riton.service.impl;
 
-import com.riton.entity.SeckillVoucher;
+import com.riton.domain.entity.SeckillVoucher;
 import com.riton.mapper.SeckillVoucherMapper;
 import com.riton.service.ISeckillVoucherService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
