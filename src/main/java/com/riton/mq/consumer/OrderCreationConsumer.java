@@ -6,6 +6,7 @@ import com.riton.domain.entity.VoucherOrder;
 import com.riton.mapper.SeckillVoucherMapper;
 import com.riton.mapper.VoucherOrderMapper;
 import com.riton.constants.MQConstants;
+import com.riton.mq.OrderCloseEvent;
 import com.riton.mq.OrderCreationEvent;
 import com.riton.constants.RedisConstants;
 import com.riton.service.impl.VoucherServiceImpl;
@@ -13,9 +14,12 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
+import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +36,10 @@ public class OrderCreationConsumer implements RocketMQListener<OrderCreationEven
     private final SeckillVoucherMapper seckillVoucherMapper;
 
     private final VoucherServiceImpl voucherService;
+
+    private final RocketMQTemplate rocketMQTemplate;
+
+    private static final Long CLOSE_TIME_SECONDS = 30L;
 
     @Override
     @Transactional
@@ -56,6 +64,7 @@ public class OrderCreationConsumer implements RocketMQListener<OrderCreationEven
     public void createCommonVoucherOrder(VoucherOrder voucherOrder) {
         try {
             voucherOrderMapper.insert(voucherOrder);
+            sentOrderCloseEvent(voucherOrder.getId());
         } catch (DuplicateKeyException e) {
             log.warn("同一个订单多次下单，可能是MQ多投消息！");
         }
@@ -92,8 +101,16 @@ public class OrderCreationConsumer implements RocketMQListener<OrderCreationEven
             voucherService.invalidateSingleVoucherCache(voucherId);
             // 保存订单
             voucherOrderMapper.insert(voucherOrder);
+            sentOrderCloseEvent(voucherId);
         } finally {
             lock.unlock();
         }
+    }
+
+    public void sentOrderCloseEvent(Long orderId) {
+        Message<OrderCloseEvent> message = MessageBuilder.withPayload(
+                OrderCloseEvent.builder().orderId(orderId).build()
+        ).build();
+        rocketMQTemplate.syncSendDelayTimeSeconds(MQConstants.ORDER_CLOSE_TOPIC,message,CLOSE_TIME_SECONDS);
     }
 }
