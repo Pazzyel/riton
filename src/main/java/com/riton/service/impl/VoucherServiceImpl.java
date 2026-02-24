@@ -15,6 +15,7 @@ import com.riton.mapper.VoucherMapper;
 import com.riton.service.ISeckillVoucherService;
 import com.riton.service.IVoucherService;
 import com.riton.utils.CacheClient;
+import com.riton.utils.JsonUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -47,10 +48,6 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, Voucher> impl
     private final CacheClient cacheClient;
     private final StringRedisTemplate stringRedisTemplate;
 
-    private final static ObjectMapper objectMapper = new ObjectMapper();
-    static {
-        objectMapper.registerModule(new JavaTimeModule());
-    }
     private final TypeReference<List<Long>> voucherIdListType = new TypeReference<List<Long>>() {};
     private final TypeReference<Voucher> voucherType = new TypeReference<Voucher>() {};
 
@@ -231,7 +228,7 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, Voucher> impl
 
             // 已经缓存的部分直接解析Json
             try {
-                Voucher voucher = objectMapper.readValue(voucherJson, Voucher.class);
+                Voucher voucher = JsonUtils.readValue(voucherJson, Voucher.class);
                 voucherMap.put(id, voucher);
                 //VOUCHER_LOCAL_CACHE.put(id, voucher);
             } catch (Exception e) {
@@ -259,12 +256,12 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, Voucher> impl
         return vouchers;
     }
 
-    private void invalidateShopVoucherCache(Long shopId) {
+    public void invalidateShopVoucherCache(Long shopId) {
         cacheClient.invalidate(RedisConstants.CACHE_SHOP_VOUCHERS_KEY, shopId);
         SHOP_VOUCHER_IDS_LOCAL_CACHE.invalidate(shopId);
     }
 
-    private void invalidateSingleVoucherCache(Long voucherId) {
+    public void invalidateSingleVoucherCache(Long voucherId) {
         cacheClient.invalidate(RedisConstants.CACHE_VOUCHER_KEY, voucherId);
         VOUCHER_LOCAL_CACHE.invalidate(voucherId);
     }

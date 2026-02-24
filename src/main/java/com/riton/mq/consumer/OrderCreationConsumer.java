@@ -8,6 +8,7 @@ import com.riton.mapper.VoucherOrderMapper;
 import com.riton.constants.MQConstants;
 import com.riton.mq.OrderCreationEvent;
 import com.riton.constants.RedisConstants;
+import com.riton.service.impl.VoucherServiceImpl;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
@@ -29,6 +30,8 @@ public class OrderCreationConsumer implements RocketMQListener<OrderCreationEven
     private final VoucherOrderMapper voucherOrderMapper;
 
     private final SeckillVoucherMapper seckillVoucherMapper;
+
+    private final VoucherServiceImpl voucherService;
 
     @Override
     @Transactional
@@ -86,6 +89,7 @@ public class OrderCreationConsumer implements RocketMQListener<OrderCreationEven
                 return;
                 // TODO 超卖失败可能需要更好的处理方式
             }
+            voucherService.invalidateSingleVoucherCache(voucherId);
             // 保存订单
             voucherOrderMapper.insert(voucherOrder);
         } finally {

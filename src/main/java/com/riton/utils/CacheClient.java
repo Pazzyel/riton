@@ -28,10 +28,6 @@ public class CacheClient {
     private final RedissonClient redissonClient;
     private final StringRedisTemplate stringRedisTemplate;
     private static final ExecutorService CACHE_REBUILD_EXECUTOR = Executors.newFixedThreadPool(10);//线程池，用于加开线程
-    private static final ObjectMapper objectMapper = new ObjectMapper();
-    static {
-        objectMapper.registerModule(new JavaTimeModule());
-    }
 
     @Autowired
     public CacheClient(RedissonClient redissonClient, StringRedisTemplate redisTemplate) {
@@ -47,12 +43,7 @@ public class CacheClient {
      * @param unit 过期时间单位
      */
     private void set(String key, Object value, Long time, TimeUnit unit) {
-        try {
-            stringRedisTemplate.opsForValue().set(key, objectMapper.writeValueAsString(value), time, unit);
-        } catch (JsonProcessingException e) {
-            log.info("在序列化对象 {} 时出现异常", value);
-            throw new RuntimeException(e);
-        }
+        stringRedisTemplate.opsForValue().set(key, JsonUtils.writeValueAsString(value), time, unit);
     }
 
     /**
@@ -87,12 +78,7 @@ public class CacheClient {
         RedisData redisData = new RedisData();
         redisData.setData(value);
         redisData.setExpireTime(LocalDateTime.now().plusSeconds(unit.toSeconds(time)));
-        try {
-            stringRedisTemplate.opsForValue().set(key, objectMapper.writeValueAsString(redisData));
-        } catch (JsonProcessingException e) {
-            log.info("在序列化对象 {} 时出现异常", redisData);
-            throw new RuntimeException(e);
-        }
+        stringRedisTemplate.opsForValue().set(key, JsonUtils.writeValueAsString(redisData));
     }
 
     /**
@@ -114,12 +100,7 @@ public class CacheClient {
         String json = stringRedisTemplate.opsForValue().get(key);
         if(StrUtil.isNotBlank(json)){
             //已经缓存且有数据，直接返回
-            try {
-                return objectMapper.readValue(json, type);
-            } catch (JsonProcessingException e) {
-                log.info("在反序列化JSON {} 时出现异常", json);
-                throw new RuntimeException(e);
-            }
+            return JsonUtils.readValue(json, type);
         }
         //如果命中的是空数据
         if(json != null){
@@ -138,12 +119,7 @@ public class CacheClient {
             return null;
         }
         //有数据，缓存入redis
-        try {
-            stringRedisTemplate.opsForValue().set(key, objectMapper.writeValueAsString(r), time, unit);
-        } catch (JsonProcessingException e) {
-            log.info("在序列化对象 {} 时出现异常", r);
-            throw new RuntimeException(e);
-        }
+        stringRedisTemplate.opsForValue().set(key, JsonUtils.writeValueAsString(r), time, unit);
         return r;
     }
 
@@ -164,12 +140,7 @@ public class CacheClient {
         String key = keyPrefix + id;
         String resultJSON = stringRedisTemplate.opsForValue().get(key);
         if(StrUtil.isNotBlank(resultJSON)){//Redis命中
-            try {
-                return objectMapper.readValue(resultJSON, type);
-            } catch (JsonProcessingException e) {
-                log.info("在反序列化JSON {} 时出现异常", resultJSON);
-                throw new RuntimeException(e);
-            }
+            return JsonUtils.readValue(resultJSON, type);
         }
         //判断value是否为空
         if(resultJSON != null){
@@ -191,12 +162,7 @@ public class CacheClient {
             //双锁检测防止重复重建
             resultJSON = stringRedisTemplate.opsForValue().get(key);
             if(StrUtil.isNotBlank(resultJSON)){//Redis命中
-                try {
-                    return objectMapper.readValue(resultJSON, type);
-                } catch (JsonProcessingException e) {
-                    log.info("在反序列化JSON {} 时出现异常", resultJSON);
-                    throw new RuntimeException(e);
-                }
+                return JsonUtils.readValue(resultJSON, type);
             }
             //判断value是否为空
             if(resultJSON != null){
