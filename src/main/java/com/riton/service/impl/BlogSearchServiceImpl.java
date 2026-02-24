@@ -11,6 +11,7 @@ import co.elastic.clients.elasticsearch.core.DeleteResponse;
 import co.elastic.clients.elasticsearch.core.IndexResponse;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.bulk.BulkOperation;
+import co.elastic.clients.elasticsearch.core.search.Hit;
 import com.riton.domain.doc.BlogDoc;
 import com.riton.domain.dto.Result;
 import com.riton.domain.entity.Blog;
@@ -21,15 +22,15 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 @Slf4j
 @Service
 public class BlogSearchServiceImpl implements IBlogSearchService {
 
     private static final String BLOG_INDEX = "blogs";
+    private static final String PRE_TAG = "<font color=\"#ff0000\">";
+    private static final String POST_TAG = "</font>";
 
     @Resource
     private ElasticsearchClient elasticsearchClient;
@@ -57,10 +58,16 @@ public class BlogSearchServiceImpl implements IBlogSearchService {
                     .from(from)
                     .size(pageSize)
                     .query(finalQuery)
+                    .highlight(h -> h
+                            .preTags(PRE_TAG)
+                            .postTags(POST_TAG)
+                            .fields("title", f -> f)
+                            .fields("content", f -> f)
+                    )// 高亮查询相关
                     .sort(so -> so.score(sc -> sc.order(SortOrder.Desc))), BlogDoc.class);
             List<BlogDoc> docs = new ArrayList<>();
             response.hits().hits().stream()
-                    .map(hit -> hit.source())
+                    .map(hit -> applyHighlight(hit, hit.source()))
                     .filter(Objects::nonNull)
                     .forEach(docs::add);
             long total = response.hits().total() == null ? 0L : response.hits().total().value();
@@ -178,5 +185,24 @@ public class BlogSearchServiceImpl implements IBlogSearchService {
             }
             return b;
         }));
+    }
+
+    private BlogDoc applyHighlight(Hit<BlogDoc> hit, BlogDoc source) {
+        if (source == null) {
+            return null;
+        }
+        Map<String, List<String>> highlightMap = hit.highlight();
+        if (highlightMap == null || highlightMap.isEmpty()) {
+            return source;
+        }
+        List<String> titleHighlights = highlightMap.get("title");
+        if (titleHighlights != null && !titleHighlights.isEmpty()) {
+            source.setTitle(titleHighlights.get(0));
+        }
+        List<String> contentHighlights = highlightMap.get("content");
+        if (contentHighlights != null && !contentHighlights.isEmpty()) {
+            source.setContent(contentHighlights.get(0));
+        }
+        return source;
     }
 }
