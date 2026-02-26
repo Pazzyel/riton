@@ -177,6 +177,8 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, Voucher> impl
         seckillVoucherService.updateById(seckillVoucher);
         invalidateShopVoucherCache(voucher.getShopId());
         invalidateSingleVoucherCache(voucher.getId());
+        // 保存秒杀库存到Redis中
+        stringRedisTemplate.opsForValue().set(RedisConstants.SECKILL_STOCK_KEY + seckillVoucher.getVoucherId(), seckillVoucher.getStock().toString());
         return Result.ok(voucher.getId());
     }
 

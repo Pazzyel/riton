@@ -39,7 +39,7 @@ public class OrderCreationConsumer implements RocketMQListener<OrderCreationEven
 
     private final RocketMQTemplate rocketMQTemplate;
 
-    private static final Long CLOSE_TIME_SECONDS = 30L;
+    private static final Long CLOSE_TIME_SECONDS = 1800L;
 
     @Override
     @Transactional
@@ -101,7 +101,7 @@ public class OrderCreationConsumer implements RocketMQListener<OrderCreationEven
             voucherService.invalidateSingleVoucherCache(voucherId);
             // 保存订单
             voucherOrderMapper.insert(voucherOrder);
-            sentOrderCloseEvent(voucherId);
+            sentOrderCloseEvent(voucherOrder.getId());
         } finally {
             lock.unlock();
         }
