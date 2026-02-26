@@ -21,6 +21,7 @@ public class OrderCloseConsumer implements RocketMQListener<OrderCloseEvent> {
     @Override
     public void onMessage(OrderCloseEvent event) {
         Long orderId = event.getOrderId();
+        log.info("发现超时订单，orderId={}，正在关闭", orderId);
         Integer state = voucherOrderMapper.getOrderStatus(orderId);
         if (OrderStatutesConstants.UNPAID.equals(state)) {
             Long count = voucherOrderMapper.closeOrderByIdIfUnpaid(orderId);
