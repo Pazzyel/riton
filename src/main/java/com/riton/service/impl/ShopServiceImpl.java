@@ -6,9 +6,11 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.riton.constants.Constants;
+import com.riton.constants.MQConstants;
 import com.riton.domain.dto.Result;
 import com.riton.domain.entity.Shop;
 import com.riton.mapper.ShopMapper;
+import com.riton.mq.ShopUpdateEvent;
 import com.riton.service.IShopService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.riton.bloom.BloomFilterFactory;
@@ -16,6 +18,7 @@ import com.riton.utils.CacheClient;
 import com.riton.constants.RedisConstants;
 import com.riton.utils.SystemConstants;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.geo.Distance;
 import org.springframework.data.geo.GeoResult;
@@ -23,8 +26,8 @@ import org.springframework.data.geo.GeoResults;
 import org.springframework.data.redis.connection.RedisGeoCommands;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.domain.geo.GeoReference;
+import org.springframework.messaging.MessagingException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -47,6 +50,8 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
 
     private final BloomFilterFactory bloomFilterFactory;
 
+    private final RocketMQTemplate rocketMQTemplate;
+
     private final TypeReference<Shop> type = new TypeReference<Shop>() {};
 
     private static final Cache<Long, Shop> SHOP_LOCAL_CACHE = Caffeine.newBuilder()
@@ -55,10 +60,14 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
             .build();
 
     @Autowired
-    public ShopServiceImpl(StringRedisTemplate stringRedisTemplate, CacheClient cacheClient, BloomFilterFactory bloomFilterFactory) {
+    public ShopServiceImpl(StringRedisTemplate stringRedisTemplate,
+                           CacheClient cacheClient,
+                           BloomFilterFactory bloomFilterFactory,
+                           RocketMQTemplate rocketMQTemplate) {
         this.stringRedisTemplate = stringRedisTemplate;
         this.cacheClient = cacheClient;
         this.bloomFilterFactory = bloomFilterFactory;
+        this.rocketMQTemplate = rocketMQTemplate;
     }
 
 
@@ -106,12 +115,20 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
         return Result.ok(shop);
     }
 
+    private void sendShopUpdateEvent(Long shopId) {
+        ShopUpdateEvent event = ShopUpdateEvent.builder().shopId(shopId).build();
+        try {
+            rocketMQTemplate.convertAndSend(MQConstants.SHOP_UPDATE_TOPIC, event);
+        } catch (MessagingException e) {
+            log.error("send shop update event failed, shopId={}", shopId, e);
+        }
+    }
+
     /**
      * 更新商铺信息
      * @param shop 新的商铺信息
      * @return
      */
-    @Transactional
     @Override
     public Result update(Shop shop) {
         Long id = shop.getId();
@@ -119,11 +136,15 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
             return Result.fail("店铺ID不能为空");
         }
         //先更新数据库
-        updateById(shop);
+        boolean updated = updateById(shop);
+        if (!updated) {
+            return Result.fail("shop not found or update failed");
+        }
         //再删除缓存
         stringRedisTemplate.delete(RedisConstants.CACHE_SHOP_KEY + id);
         //Caffeine里的也要删除
         SHOP_LOCAL_CACHE.invalidate(id);
+        sendShopUpdateEvent(id);
         return Result.ok();
     }
 
