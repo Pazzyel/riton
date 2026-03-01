@@ -66,6 +66,12 @@ public class BlogController {
         return blogService.queryBlogByUserId(current, userId);
     }
 
+    @GetMapping("/of/shop/")
+    public Result queryBlogByShopId(@RequestParam(value = "current", defaultValue = "1") Integer current,
+                                    @RequestParam("shopId") Long shopId) {
+        return blogService.queryBlogByShopId(current, shopId);
+    }
+
     /**
      * 分页查询用户关注的博主的博客内容（用户收件箱）
      * @param max 上一次查询的最小时间戳（最旧博客的时间戳）

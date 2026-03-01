@@ -2,6 +2,8 @@ package com.riton.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.riton.domain.dto.Result;
 import com.riton.domain.dto.ScrollResult;
@@ -39,6 +41,7 @@ import java.util.stream.Collectors;
 @Service
 public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IBlogService {
 
+    private final BlogMapper blogMapper;
     private IUserService userService;
 
     private StringRedisTemplate stringRedisTemplate;
@@ -46,10 +49,11 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
     private IFollowService followService;
 
     @Autowired
-    public BlogServiceImpl(IUserService userService, StringRedisTemplate redisTemplate, IFollowService followService) {
+    public BlogServiceImpl(IUserService userService, StringRedisTemplate redisTemplate, IFollowService followService, BlogMapper blogMapper) {
         this.userService = userService;
         this.stringRedisTemplate = redisTemplate;
         this.followService = followService;
+        this.blogMapper = blogMapper;
     }
 
     /**
@@ -216,6 +220,13 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
         List<Blog> records = page.getRecords();
         //我的Blog用户就是我自己
         return Result.ok(records);
+    }
+
+    @Override
+    public Result queryBlogByShopId(Integer current, Long shopId) {
+        IPage<Blog> page = new Page<>(current, SystemConstants.MAX_PAGE_SIZE);
+        IPage<Blog> blogIPage = blogMapper.selectPage(page, new QueryWrapper<Blog>().eq("shop_id", shopId).orderByDesc("liked"));
+        return Result.ok(blogIPage.getRecords());
     }
 
     /**
