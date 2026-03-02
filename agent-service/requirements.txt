@@ -6,4 +6,6 @@ PyYAML>=6.0.2
 langchain>=0.3.27
 langchain-openai>=0.3.30
 langchain-mcp-adapters>=0.1.9
+langchain_classic>=1.0.0
 fastmcp>=2.10.6
+redis>=7.2.1
