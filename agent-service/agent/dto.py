@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class ShopDoc(BaseModel):
+    """商铺的json对应实体类"""
     id: int | None = None
     name: str | None = None
     typeId: int | None = None
@@ -23,6 +24,7 @@ class ShopDoc(BaseModel):
 
 
 class AgentSearchDTO(BaseModel):
+    """返回的实体类"""
     content: str = Field(default="")
     shopDoc: ShopDoc | None = None
 
