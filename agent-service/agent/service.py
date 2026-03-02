@@ -98,13 +98,14 @@ def _fallback_without_llm(user_query: str, authorization: str | None) -> str:
 
 async def _build_executor() -> AgentExecutor:
     """构建可调用 MCP 工具的 LangChain AgentExecutor。"""
+    # stdio模式下，客户端将MCP服务器作为子进程启动，并通过标准输入/输出进行通信。最适合本地工具和简单的设置
     client = MultiServerMCPClient(
         {
             "riton-search-mcp": {
-                "command": sys.executable,
+                "command": sys.executable, # or python
                 "args": ["-m", "agent.mcp_server"],
-                "transport": "stdio",
-                "cwd": str(PROJECT_ROOT),
+                "transport": "stdio", # 如果MCP服务器是远程，改成http，并指定url
+                "cwd": str(PROJECT_ROOT), # 运行命令的目录
             }
         }
     )
