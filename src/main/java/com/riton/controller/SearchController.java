@@ -1,10 +1,12 @@
 package com.riton.controller;
 
+import com.riton.domain.dto.AgentSearchDTO;
 import com.riton.domain.dto.Result;
 import com.riton.domain.query.BlogPageQuery;
 import com.riton.domain.query.ShopPageSearch;
 import com.riton.service.IBlogSearchService;
 import com.riton.service.IShopSearchService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
+import org.springframework.web.client.RestTemplate;
 
 @Validated
 @RestController

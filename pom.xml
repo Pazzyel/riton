@@ -6,8 +6,8 @@
 
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.hmdp</groupId>
-    <artifactId>hm-dianping</artifactId>
+    <groupId>com.pazz</groupId>
+    <artifactId>riton</artifactId>
     <version>1.0.0</version>
 
     <!-- 统一版本管理 -->
