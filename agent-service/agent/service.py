@@ -21,6 +21,7 @@ _JSON_OBJECT_RE = re.compile(r"\{[\s\S]*\}")
 
 def _extract_json_text(text: str) -> str:
     """从模型输出中提取首个可解析的 JSON 文本。"""
+    # 首先尝试直接解析整个文本（[]或者{}），如果失败则使用正则表达式提取 JSON 数组或对象
     text = text.strip()
     if (text.startswith("[") and text.endswith("]")) or (text.startswith("{") and text.endswith("}")):
         return text
@@ -69,11 +70,14 @@ def _fallback_without_llm(user_query: str, authorization: str | None) -> str:
         authorization=authorization,
     )
     response = result.get("response") if isinstance(result, dict) else None
+    # data 是一个json数组
     data = response.get("data") if isinstance(response, dict) else None
 
+    # 如果 data 不是列表或者是空列表，说明没有找到匹配的店铺，返回一个提示信息
     if not isinstance(data, list) or not data:
         return _dto_list_to_json([AgentSearchDTO(content="No matched shop found by fallback search.", shopDoc=None)])
 
+    # 从返回的店铺列表中构建 DTO 列表，最多取前 5 个结果作为推荐
     dto_list = []
     for item in data[:5]:
         if isinstance(item, dict):
@@ -85,6 +89,8 @@ def _fallback_without_llm(user_query: str, authorization: str | None) -> str:
                     }
                 )
             )
+
+    # 没有任何符合条件的结果时，返回一个提示信息
     if not dto_list:
         dto_list = [AgentSearchDTO(content="No result", shopDoc=None)]
     return _dto_list_to_json(dto_list)
@@ -92,13 +98,14 @@ def _fallback_without_llm(user_query: str, authorization: str | None) -> str:
 
 async def _build_executor() -> AgentExecutor:
     """构建可调用 MCP 工具的 LangChain AgentExecutor。"""
+    # stdio模式下，客户端将MCP服务器作为子进程启动，并通过标准输入/输出进行通信。最适合本地工具和简单的设置
     client = MultiServerMCPClient(
         {
             "riton-search-mcp": {
-                "command": sys.executable,
+                "command": sys.executable, # or python
                 "args": ["-m", "agent.mcp_server"],
-                "transport": "stdio",
-                "cwd": str(PROJECT_ROOT),
+                "transport": "stdio", # 如果MCP服务器是远程，改成http，并指定url
+                "cwd": str(PROJECT_ROOT), # 运行命令的目录
             }
         }
     )
@@ -118,11 +125,14 @@ async def _build_executor() -> AgentExecutor:
 
 async def search_as_agent_search_dto_json(user_query: str, authorization: str | None = None) -> str:
     """主逻辑函数，执行搜索推荐并返回 JSON 数组字符串。"""
+    # 输入校验：空查询直接返回提示信息
     if not user_query or not user_query.strip():
         return _dto_list_to_json([AgentSearchDTO(content="empty query", shopDoc=None)])
 
+    # 提取token
     final_auth = authorization or ""
     try:
+        # 构建 AgentExecutor 并执行查询
         executor = await _build_executor()
         result = await executor.ainvoke(
             {
@@ -132,13 +142,16 @@ async def search_as_agent_search_dto_json(user_query: str, authorization: str | 
         )
         output_text = str(result.get("output", "")).strip()
     except Exception:
+        # 模型调用异常时，尝试直接调用后端的ES搜索API
         return _fallback_without_llm(user_query.strip(), final_auth or None)
 
+    # 从模型返回的json字符串解析对象（dict or list[dict]）
     try:
         parsed: Any = json.loads(_extract_json_text(output_text))
     except Exception:
         return _dto_list_to_json([AgentSearchDTO(content=output_text or "No result", shopDoc=None)])
 
+    # 解析成 list[AgentSearchDTO]
     dto_list = coerce_agent_search_dto_list(parsed)
     if not dto_list:
         dto_list = [AgentSearchDTO(content="No result", shopDoc=None)]

@@ -103,6 +103,6 @@ def search_blog(
         params["content"] = content
     return call_backend("GET", "/search/blog", params=params, authorization=_auth(authorization))
 
-
+# 启动MCP服务器
 if __name__ == "__main__":
     mcp.run(transport="stdio", show_banner=False)

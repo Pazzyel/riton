@@ -15,6 +15,7 @@ def register_auth_middleware(app) -> None:
     except Exception:
         return
 
+    # 构建redis客户端
     redis_client = redis.Redis(
         host=get_redis_host(),
         port=get_redis_port(),
@@ -29,10 +30,12 @@ def register_auth_middleware(app) -> None:
         if not auth_header:
             raise HTTPException(status_code=401, detail="Unauthorized")
 
+        # 在redis验证token
         token = auth_header.split(" ", 1)[-1]
         if not redis_client.exists(LOGIN_USER_KEY + token):
             raise HTTPException(status_code=401, detail="Invalid token")
 
+        # 放行请求
         response = await call_next(request)
         response.headers["X-Received-Authorization"] = token
         return response
