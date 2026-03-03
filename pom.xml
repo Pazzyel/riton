@@ -173,6 +173,10 @@
         </dependency>
     </dependencies>
 
+    <!-- 打包格式 -->
+    <packaging>jar</packaging>
+
+    <!-- 打包插件 -->
     <build>
         <plugins>
 
@@ -187,6 +191,25 @@
                 <configuration>
                     <release>21</release>
                 </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <executable>true</executable>
+                    <layout>JAR</layout>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                        <configuration>
+                            <attach>false</attach>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
 
         </plugins>

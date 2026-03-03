@@ -1,0 +1,108 @@
+﻿version: "3.9"
+
+services:
+  riton-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        JAR_FILE: target/riton-1.0.0.jar
+    image: riton-app:1.0.0
+    container_name: riton-app
+    ports:
+      - "8045:8045"
+    depends_on:
+      - mysql
+      - redis
+      - rocketmq-namesrv
+      - rocketmq-broker
+      - elasticsearch
+    networks:
+      - riton-network
+
+  mysql:
+    image: mysql:9.1.0
+    container_name: riton-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: redis_db
+      TZ: Asia/Shanghai
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./src/main/resources/db/riton.sql:/docker-entrypoint-initdb.d/riton.sql:ro
+    networks:
+      - riton-network
+
+  redis:
+    image: redis:6.2.6
+    container_name: riton-redis
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "riton-redis-pass"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - riton-network
+
+  rocketmq-namesrv:
+    image: apache/rocketmq:5.4.0
+    container_name: riton-rocketmq-namesrv
+    command: ["sh", "mqnamesrv"]
+    ports:
+      - "9876:9876"
+    networks:
+      - riton-network
+
+  rocketmq-broker:
+    image: apache/rocketmq:5.4.0
+    container_name: riton-rocketmq-broker
+    environment:
+      NAMESRV_ADDR: rocketmq-namesrv:9876
+    command: ["sh", "mqbroker", "-n", "rocketmq-namesrv:9876", "--enable-proxy"]
+    depends_on:
+      - rocketmq-namesrv
+    ports:
+      - "10911:10911"
+      - "10909:10909"
+      - "10912:10912"
+    networks:
+      - riton-network
+
+  rocketmq-dashboard:
+    image: apacherocketmq/rocketmq-dashboard:latest
+    container_name: riton-rocketmq-dashboard
+    environment:
+      JAVA_OPTS: "-Drocketmq.namesrv.addr=rocketmq-namesrv:9876"
+    depends_on:
+      - rocketmq-namesrv
+    ports:
+      - "8082:8082"
+    networks:
+      - riton-network
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.28
+    container_name: riton-elasticsearch
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+    networks:
+      - riton-network
+
+networks:
+  riton-network:
+    name: riton-network
+    driver: bridge
+
+volumes:
+  mysql-data:
+  redis-data:
+  es-data:

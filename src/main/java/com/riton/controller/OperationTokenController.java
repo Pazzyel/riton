@@ -19,6 +19,11 @@ public class OperationTokenController {
         this.operationTokenService = operationTokenService;
     }
 
+    /**
+     * 对幂等操作，需要前端先请求唯一token，这是请求唯一token的接口
+     * @param requestPath 访问API的URI
+     * @return 唯一token
+     */
     @GetMapping
     public Result getOperationToken(@RequestParam("requestPath") String requestPath) {
         return operationTokenService.getOperationToken(requestPath);

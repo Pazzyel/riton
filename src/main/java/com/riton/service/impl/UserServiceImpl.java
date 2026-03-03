@@ -77,6 +77,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         }
 
         //校验验证码
+        // session 只有在setAttribute() 后才会创建，并返回客户端一个 JSESSION 用于索引，因此没有获取验证码之前登录会抛出异常
+        if (session == null || session.getAttribute("code") == null) {
+            return Result.fail("请先获取验证码!");
+        }
         String cacheCode = session.getAttribute("code").toString();
         String code = loginForm.getCode();
         if (code == null || !code.equals(cacheCode)) {
