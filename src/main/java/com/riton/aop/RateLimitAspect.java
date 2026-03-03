@@ -27,7 +27,7 @@ public class RateLimitAspect {
     @Resource
     private RedissonClient redissonClient;
 
-    @Before("@annotation(rateLimit)")
+    @Before("execution(* com.riton.controller..*(..)) && @annotation(rateLimit)")
     public void doBefore(JoinPoint point, RateLimit rateLimit) {
         String key = generateRateLimitKey(point, rateLimit);
         // 使用Redisson的分布式限流器
