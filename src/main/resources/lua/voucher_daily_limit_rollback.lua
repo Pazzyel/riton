@@ -6,7 +6,7 @@ local day = ARGV[4]
 local stockKey = 'seckill:stock:' .. voucherId
 local orderKey = 'seckill:order:daily' .. day .. voucherId
 
-redis.call('incrby', stockKey, 1)
+-- redis.call('incrby', stockKey, 1)
 
 local count = redis.call('hget', orderKey, userId)
 if (count and tonumber(count) > 0) then

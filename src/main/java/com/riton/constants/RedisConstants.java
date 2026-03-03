@@ -31,6 +31,9 @@ public class RedisConstants {
     public static final String SHOP_GEO_KEY = "shop:geo:";
     public static final String USER_SIGN_KEY = "sign:";
 
+    public static final String OPERATION_TOKEN_KEY = "optoken:";
+    public static final Long OPERATION_TOKEN_TTL = 5L; // MINUTE
+
     public static long randomTTL(){
         Random r = new Random();
         return (long) r.nextInt(6);//0-5的随机TTL

@@ -178,7 +178,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
                     userId.toString(),
                     String.valueOf(orderId),
                     formatter.format(now),
-                    limit);
+                    limit.toString());
         } else if (limit.equals(VoucherDailyLimitConstants.ONLY_ONE_LIMIT)) {
             result = stringRedisTemplate.execute(SECKILL_ONE_LIMIT_SCRIPT, Collections.emptyList() ,
                     voucherId.toString(),

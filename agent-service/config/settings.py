@@ -7,7 +7,7 @@ from typing import Any
 import yaml
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = Path(__file__).resolve().parents[1] # agent-service
 APP_YAML_PATH = Path(__file__).resolve().parent / "application.yaml"
 
 

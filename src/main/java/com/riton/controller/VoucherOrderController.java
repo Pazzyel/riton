@@ -2,6 +2,7 @@ package com.riton.controller;
 
 
 import com.riton.annotations.RateLimit;
+import com.riton.annotations.RequireTokenCheck;
 import com.riton.domain.dto.Result;
 import com.riton.enums.RateLimitType;
 import com.riton.service.IVoucherOrderService;
@@ -39,6 +40,7 @@ public class VoucherOrderController {
     }
 
     @PostMapping("voucher/{id}")
+    @RequireTokenCheck
     public Result voucher(@PathVariable("id") Long voucherId) {
         return voucherOrderService.voucher(voucherId);
     }

@@ -19,4 +19,6 @@ public class Constants {
     public static final String BLOOM_FILTER_HANDLER_SECKILL_VOUCHER = "seckill_voucher";
 
     public static final String DELAY_VOUCHER_REMINDER ="r_delay_voucher_reminder";
+
+    public static final String OPERATION_TOKEN_HEADER = "operation-token";
 }
