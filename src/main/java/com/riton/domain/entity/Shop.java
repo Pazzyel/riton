@@ -69,6 +69,11 @@ public class Shop implements Serializable {
     private Double y;
 
     /**
+     * h3十六进制地理位置哈希值，从经纬度计算
+     */
+    private String h3hex;
+
+    /**
      * 均价，取整数
      */
     private Long avgPrice;

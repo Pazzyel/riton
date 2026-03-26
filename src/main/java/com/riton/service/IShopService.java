@@ -16,6 +16,13 @@ import org.springframework.transaction.annotation.Transactional;
 public interface IShopService extends IService<Shop> {
 
     /**
+     * 新增商铺信息
+     * @param shop 商铺数据
+     * @return 商铺id
+     */
+    Result createShop(Shop shop);
+
+    /**
      * 根据id查询商铺信息
      * @param id id
      * @return

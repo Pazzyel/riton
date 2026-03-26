@@ -33,6 +33,8 @@
         <!-- 第三方支付SDK -->
         <alipay.version>4.40.272.ALL</alipay.version>
         <wechatpay.version>0.2.17</wechatpay.version>
+
+        <h3.version>4.4.0</h3.version>
     </properties>
 
     <!-- Spring Boot BOM -->
@@ -170,6 +172,12 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.uber</groupId>
+            <artifactId>h3</artifactId>
+            <version>${h3.version}</version>
         </dependency>
     </dependencies>
 

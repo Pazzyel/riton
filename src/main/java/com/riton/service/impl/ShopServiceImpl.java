@@ -17,6 +17,7 @@ import com.riton.bloom.BloomFilterFactory;
 import com.riton.utils.CacheClient;
 import com.riton.constants.RedisConstants;
 import com.riton.utils.SystemConstants;
+import com.uber.h3core.H3Core;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,6 +45,8 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IShopService {
 
+    private static final int SHOP_H3_RESOLUTION = 6;
+
     private final StringRedisTemplate stringRedisTemplate;
 
     private final CacheClient cacheClient;
@@ -51,6 +54,8 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
     private final BloomFilterFactory bloomFilterFactory;
 
     private final RocketMQTemplate rocketMQTemplate;
+
+    private final H3Core h3Core;
 
     private final TypeReference<Shop> type = new TypeReference<Shop>() {};
 
@@ -63,11 +68,38 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
     public ShopServiceImpl(StringRedisTemplate stringRedisTemplate,
                            CacheClient cacheClient,
                            BloomFilterFactory bloomFilterFactory,
-                           RocketMQTemplate rocketMQTemplate) {
+                           RocketMQTemplate rocketMQTemplate,
+                           H3Core h3Core) {
         this.stringRedisTemplate = stringRedisTemplate;
         this.cacheClient = cacheClient;
         this.bloomFilterFactory = bloomFilterFactory;
         this.rocketMQTemplate = rocketMQTemplate;
+        this.h3Core = h3Core;
+    }
+
+
+    @Override
+    public Result createShop(Shop shop) {
+        if (shop == null) {
+            return Result.fail("请求参数不能为空");
+        }
+
+        String coordinateError = validateCoordinates(shop.getX(), shop.getY());
+        if (coordinateError != null) {
+            return Result.fail(coordinateError);
+        }
+
+        String h3hex = buildH3Hex(shop.getX(), shop.getY());
+        if (h3hex == null) {
+            return Result.fail("计算h3hex失败");
+        }
+        shop.setH3hex(h3hex);
+
+        boolean saved = save(shop);
+        if (!saved) {
+            return Result.fail("新增店铺失败");
+        }
+        return Result.ok(shop.getId());
     }
 
 
@@ -131,10 +163,38 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
      */
     @Override
     public Result update(Shop shop) {
+        if (shop == null) {
+            return Result.fail("请求参数不能为空");
+        }
         Long id = shop.getId();
         if (id == null) {
             return Result.fail("店铺ID不能为空");
         }
+
+        if (shop.getX() == null || shop.getY() == null) {
+            Shop oldShop = getById(id);
+            if (oldShop == null) {
+                return Result.fail("店铺不存在");
+            }
+            if (shop.getX() == null) {
+                shop.setX(oldShop.getX());
+            }
+            if (shop.getY() == null) {
+                shop.setY(oldShop.getY());
+            }
+        }
+
+        String coordinateError = validateCoordinates(shop.getX(), shop.getY());
+        if (coordinateError != null) {
+            return Result.fail(coordinateError);
+        }
+
+        String h3hex = buildH3Hex(shop.getX(), shop.getY());
+        if (h3hex == null) {
+            return Result.fail("计算h3hex失败");
+        }
+        shop.setH3hex(h3hex);
+
         //先更新数据库
         boolean updated = updateById(shop);
         if (!updated) {
@@ -146,6 +206,25 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
         SHOP_LOCAL_CACHE.invalidate(id);
         sendShopUpdateEvent(id);
         return Result.ok();
+    }
+
+    private String buildH3Hex(Double x, Double y) {
+        try {
+            return h3Core.latLngToCellAddress(y, x, SHOP_H3_RESOLUTION);
+        } catch (Exception e) {
+            log.error("计算商铺h3hex失败, x={}, y={}", x, y, e);
+            return null;
+        }
+    }
+
+    private String validateCoordinates(Double x, Double y) {
+        if (x == null || y == null) {
+            return "经纬度不能为空";
+        }
+        if (x < -180 || x > 180 || y < -90 || y > 90) {
+            return "经纬度超出范围";
+        }
+        return null;
     }
 
     /**

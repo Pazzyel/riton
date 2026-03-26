@@ -4,6 +4,7 @@ import com.riton.domain.entity.Shop;
 import com.riton.service.IShopService;
 import com.riton.constants.RedisConstants;
 import com.riton.utils.RedisIdWorker;
+import com.uber.h3core.H3Core;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -83,4 +84,13 @@ class RitonApplicationTests {
         System.out.println("size=" + size);
     }
 
+    @Autowired
+    private H3Core h3Core;
+
+    @Test
+    public void loadH3hex() {
+        List<Shop> shops = shopService.list();
+        shops.stream().forEach(shop -> {shop.setH3hex(h3Core.latLngToCellAddress(shop.getY(),shop.getX(),6));});
+        shopService.updateBatchById(shops);
+    }
 }
