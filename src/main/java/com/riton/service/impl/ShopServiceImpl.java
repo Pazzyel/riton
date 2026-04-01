@@ -284,4 +284,41 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
         shops.forEach(shop -> shop.setDistance(distanceMap.get(shop.getId())));
         return Result.ok(shops);
     }
+
+    /**
+     * 更新店铺可维护基础资料。
+     *
+     * @param shopId      店铺 ID
+     * @param profileForm 店铺资料
+     * @return 更新结果
+     */
+    @Override
+    public Result updateProfile(Long shopId, Shop profileForm) {
+        // 第一步：校验店铺 ID 与输入参数。
+        if (shopId == null) {
+            return Result.fail("店铺ID不能为空");
+        }
+        if (profileForm == null) {
+            return Result.fail("请求参数不能为空");
+        }
+
+        // 第二步：仅更新允许维护的字段。
+        Shop update = new Shop();
+        update.setId(shopId);
+        update.setName(profileForm.getName());
+        update.setImages(profileForm.getImages());
+        update.setArea(profileForm.getArea());
+        update.setAddress(profileForm.getAddress());
+        update.setOpenHours(profileForm.getOpenHours());
+
+        // 第三步：写库并清理缓存。
+        boolean updated = updateById(update);
+        if (!updated) {
+            return Result.fail("店铺不存在");
+        }
+        stringRedisTemplate.delete(RedisConstants.CACHE_SHOP_KEY + shopId);
+        SHOP_LOCAL_CACHE.invalidate(shopId);
+        sendShopUpdateEvent(shopId);
+        return Result.ok();
+    }
 }

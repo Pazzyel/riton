@@ -1,13 +1,15 @@
-﻿# UserController 接口文档
+# UserController 接口文档
 
-- Controller: `com.riton.controller.UserController`
+- Controllers:
+  - `com.riton.controller.common.UserCommonController`
+  - `com.riton.controller.user.UserLoginController`
 - Base URL: `/user`
 
 ## 通用说明
 
 ### 鉴权
-- `/user/code`、`/user/login` 在白名单内，可匿名访问。
-- 其余 `/user/**` 默认需要登录。
+- `/user/code`、`/user/login`、`/user/info/{id}`、`/user/{id}` 可匿名访问。
+- `/user/logout`、`/user/me`、`/user/sign`、`/user/sign/count`、`/user/password` 需要登录。
 
 ### 统一响应
 - `Result{ success, errorMsg, data, total }`
@@ -70,3 +72,15 @@
 - Method: `GET`
 - Path: `/user/sign/count`
 - 返回: `Result.data = 连续签到天数`
+
+### 9. 修改密码
+- Method: `PUT`
+- Path: `/user/password`
+- 请求体: `UserPasswordFormDTO`
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| oldPassword | String | 否 | 已设置旧密码时必填 |
+| newPassword | String | 是 | 新密码，长度至少6位 |
+
+- 返回: `Result.data = null`

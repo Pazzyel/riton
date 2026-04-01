@@ -200,6 +200,166 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, Voucher> impl
     }
 
     /**
+     * 查询指定店铺可管理的优惠券列表。
+     *
+     * @param shopId 店铺 ID
+     * @return 优惠券列表
+     */
+    @Override
+    public Result queryManageVouchers(Long shopId) {
+        // 第一步：校验店铺 ID。
+        if (shopId == null) {
+            return Result.fail("店铺ID不能为空");
+        }
+
+        // 第二步：查询并返回店铺下全部券。
+        List<Voucher> vouchers = voucherMapper.queryVoucherOfShop(shopId);
+        return Result.ok(vouchers == null ? Collections.emptyList() : vouchers);
+    }
+
+    /**
+     * 新增普通券（店铺管理端）。
+     *
+     * @param shopId  店铺 ID
+     * @param voucher 优惠券参数
+     * @return 新增结果
+     */
+    @Override
+    public Result addVoucherByShop(Long shopId, Voucher voucher) {
+        // 第一步：校验店铺身份与请求参数。
+        if (shopId == null) {
+            return Result.fail("店铺ID不能为空");
+        }
+        if (voucher == null) {
+            return Result.fail("优惠券参数不能为空");
+        }
+
+        // 第二步：强制以登录店铺 ID 为准保存。
+        voucher.setId(null);
+        voucher.setShopId(shopId);
+        save(voucher);
+        invalidateShopVoucherCache(shopId);
+        invalidateSingleVoucherCache(voucher.getId());
+        return Result.ok(voucher.getId());
+    }
+
+    /**
+     * 新增秒杀券（店铺管理端）。
+     *
+     * @param shopId  店铺 ID
+     * @param voucher 优惠券参数
+     * @return 新增结果
+     */
+    @Override
+    public Result addSeckillVoucherByShop(Long shopId, Voucher voucher) {
+        // 第一步：校验店铺身份与请求参数。
+        if (shopId == null) {
+            return Result.fail("店铺ID不能为空");
+        }
+        if (voucher == null) {
+            return Result.fail("优惠券参数不能为空");
+        }
+
+        // 第二步：强制以登录店铺 ID 为准新增秒杀券。
+        voucher.setId(null);
+        voucher.setShopId(shopId);
+        addSeckillVoucher(voucher);
+        return Result.ok(voucher.getId());
+    }
+
+    /**
+     * 更新普通券（店铺管理端）。
+     *
+     * @param shopId  店铺 ID
+     * @param voucher 优惠券参数
+     * @return 更新结果
+     */
+    @Override
+    public Result updateVoucherByShop(Long shopId, Voucher voucher) {
+        // 第一步：校验基础参数。
+        if (shopId == null) {
+            return Result.fail("店铺ID不能为空");
+        }
+        if (voucher == null || voucher.getId() == null) {
+            return Result.fail("优惠券ID不能为空");
+        }
+
+        // 第二步：校验优惠券归属。
+        Voucher existed = voucherMapper.selectById(voucher.getId());
+        if (existed == null) {
+            return Result.fail("优惠券不存在");
+        }
+        if (!shopId.equals(existed.getShopId())) {
+            return Result.fail("无权操作该优惠券");
+        }
+
+        // 第三步：强制店铺 ID 后执行更新。
+        voucher.setShopId(shopId);
+        return updateVoucher(voucher);
+    }
+
+    /**
+     * 更新秒杀券（店铺管理端）。
+     *
+     * @param shopId  店铺 ID
+     * @param voucher 优惠券参数
+     * @return 更新结果
+     */
+    @Override
+    public Result updateSeckillVoucherByShop(Long shopId, Voucher voucher) {
+        // 第一步：校验基础参数。
+        if (shopId == null) {
+            return Result.fail("店铺ID不能为空");
+        }
+        if (voucher == null || voucher.getId() == null) {
+            return Result.fail("优惠券ID不能为空");
+        }
+
+        // 第二步：校验优惠券归属。
+        Voucher existed = voucherMapper.selectById(voucher.getId());
+        if (existed == null) {
+            return Result.fail("优惠券不存在");
+        }
+        if (!shopId.equals(existed.getShopId())) {
+            return Result.fail("无权操作该优惠券");
+        }
+
+        // 第三步：强制店铺 ID 后执行更新。
+        voucher.setShopId(shopId);
+        return updateSeckillVoucher(voucher);
+    }
+
+    /**
+     * 删除优惠券（店铺管理端）。
+     *
+     * @param shopId    店铺 ID
+     * @param voucherId 优惠券 ID
+     * @return 删除结果
+     */
+    @Override
+    public Result deleteVoucherByShop(Long shopId, Long voucherId) {
+        // 第一步：校验基础参数。
+        if (shopId == null) {
+            return Result.fail("店铺ID不能为空");
+        }
+        if (voucherId == null) {
+            return Result.fail("优惠券ID不能为空");
+        }
+
+        // 第二步：校验优惠券归属。
+        Voucher existed = voucherMapper.selectById(voucherId);
+        if (existed == null) {
+            return Result.ok(voucherId);
+        }
+        if (!shopId.equals(existed.getShopId())) {
+            return Result.fail("无权操作该优惠券");
+        }
+
+        // 第三步：执行删除。
+        return deleteVoucher(voucherId);
+    }
+
+    /**
      * 查询id列表对应的优惠券列表信息，先查Redis再查数据库
      * 我们倾向于直接从Redis一次全部查出，因此该函数不会加入本地缓存
      * @param voucherIds id列表

@@ -3,6 +3,7 @@ package com.riton.mq.consumer;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.riton.constants.OrderStatutesConstants;
 import com.riton.domain.entity.VoucherOrder;
+import com.riton.domain.entity.Voucher;
 import com.riton.mapper.SeckillVoucherMapper;
 import com.riton.mapper.VoucherOrderMapper;
 import com.riton.constants.MQConstants;
@@ -20,8 +21,13 @@ import org.redisson.api.RedissonClient;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Collections;
 
 @Service
 @Slf4j
@@ -39,22 +45,63 @@ public class OrderCreationConsumer implements RocketMQListener<OrderCreationEven
 
     private final RocketMQTemplate rocketMQTemplate;
 
+    private final StringRedisTemplate stringRedisTemplate;
+
+    private static final DefaultRedisScript<Long> SECKILL_ONE_LIMIT_ROLLBACK_SCRIPT;
+
+    static {
+        SECKILL_ONE_LIMIT_ROLLBACK_SCRIPT = new DefaultRedisScript<>();
+        SECKILL_ONE_LIMIT_ROLLBACK_SCRIPT.setLocation(new ClassPathResource("lua/seckill_one_limit_rollback.lua"));
+        SECKILL_ONE_LIMIT_ROLLBACK_SCRIPT.setResultType(Long.class);
+    }
+
     private static final Long CLOSE_TIME_SECONDS = 1800L;
 
     @Override
     @Transactional
     public void onMessage(OrderCreationEvent orderCreationEvent) {
+        // 第一步：读取券信息并确定订单所属店铺。
+        Voucher voucher = voucherService.getById(orderCreationEvent.getVoucherId());
+        if (voucher == null || voucher.getShopId() == null) {
+            log.error("下单消息对应优惠券不存在或店铺为空, voucherId={}, orderId={}", orderCreationEvent.getVoucherId(), orderCreationEvent.getOrderId());
+            rollbackIfSeckill(orderCreationEvent);
+            return;
+        }
+
+        // 第二步：构建订单对象并设置 shopId。
         VoucherOrder order = VoucherOrder.builder()
                 .id(orderCreationEvent.getOrderId())
                 .userId(orderCreationEvent.getUserId())
                 .voucherId(orderCreationEvent.getVoucherId())
+                .shopId(voucher.getShopId())
                 .status(OrderStatutesConstants.UNPAID)
                 .build();
+
+        // 第三步：按订单类型走对应创建流程。
         if (orderCreationEvent.getIsSeckillOrder()) {
             createSeckillVoucherOrder(order);
         } else {
             createCommonVoucherOrder(order);
         }
+    }
+
+    /**
+     * 当订单消息因券信息异常无法落库时，回滚秒杀脚本侧扣减。
+     *
+     * @param orderCreationEvent 下单消息
+     */
+    private void rollbackIfSeckill(OrderCreationEvent orderCreationEvent) {
+        // 第一步：仅秒杀下单走 Redis 回滚脚本。
+        if (!Boolean.TRUE.equals(orderCreationEvent.getIsSeckillOrder())) {
+            return;
+        }
+
+        // 第二步：回滚 Redis 库存和用户购买记录。
+        stringRedisTemplate.execute(SECKILL_ONE_LIMIT_ROLLBACK_SCRIPT,
+                Collections.emptyList(),
+                orderCreationEvent.getVoucherId().toString(),
+                orderCreationEvent.getUserId().toString(),
+                orderCreationEvent.getOrderId().toString());
     }
 
     /**

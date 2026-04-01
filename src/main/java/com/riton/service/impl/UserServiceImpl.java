@@ -4,14 +4,17 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.lang.UUID;
 import cn.hutool.core.util.RandomUtil;
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.riton.domain.dto.LoginFormDTO;
 import com.riton.domain.dto.Result;
 import com.riton.domain.dto.UserDTO;
+import com.riton.domain.dto.UserPasswordFormDTO;
 import com.riton.domain.entity.User;
 import com.riton.mapper.UserMapper;
 import com.riton.service.IUserService;
 import com.riton.constants.RedisConstants;
+import com.riton.utils.PasswordEncoder;
 import com.riton.utils.RegexUtils;
 import com.riton.utils.SystemConstants;
 import com.riton.utils.UserHolder;
@@ -70,13 +73,25 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
      */
     @Override
     public Result login(LoginFormDTO loginForm, HttpSession session) {
-        //校验手机号
+        // 第一步：校验手机号
         String phone = loginForm.getPhone();
         if (RegexUtils.isPhoneInvalid(phone)) {
             return Result.fail("手机号格式错误!");
         }
 
-        //校验验证码
+        // 第二步：按参数选择密码登录或验证码登录
+        String password = loginForm.getPassword();
+        if (StrUtil.isNotBlank(password)) {
+            User user = query().eq("phone", phone).one();
+            if (user == null) {
+                return Result.fail("用户不存在!");
+            }
+            if (!PasswordEncoder.matches(user.getPassword(), password)) {
+                return Result.fail("密码错误!");
+            }
+            return generateTokenAndReturn(user);
+        }
+
         // session 只有在setAttribute() 后才会创建，并返回客户端一个 JSESSION 用于索引，因此没有获取验证码之前登录会抛出异常
         if (session == null || session.getAttribute("code") == null) {
             return Result.fail("请先获取验证码!");
@@ -87,14 +102,67 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
             return Result.fail("验证码错误!");
         }
 
-        //查询用户
+        // 第三步：验证码登录时查用户并按需注册
         User user = query().eq("phone",phone).one();
-        //没有就新创建用户
         if (user == null) {
             user = createUserWithPhone(phone);
         }
 
-        //清除这个用户存在的所有token
+        // 第四步：生成并返回 token
+        return generateTokenAndReturn(user);
+    }
+
+    /**
+     * 修改当前登录用户密码
+     * @param formDTO 密码修改参数
+     * @return 无
+     */
+    @Override
+    public Result updatePassword(UserPasswordFormDTO formDTO) {
+        // 第一步：校验登录状态与新密码参数
+        UserDTO userDTO = UserHolder.getUser();
+        if (userDTO == null) {
+            return Result.fail("请先登录!");
+        }
+        String newPassword = formDTO.getNewPassword();
+        if (StrUtil.isBlank(newPassword)) {
+            return Result.fail("新密码不能为空!");
+        }
+        if (newPassword.length() < 6) {
+            return Result.fail("新密码长度不能小于6位!");
+        }
+
+        // 第二步：校验旧密码（仅当当前账号已设置密码时）
+        User user = getById(userDTO.getId());
+        if (user == null) {
+            return Result.fail("用户不存在!");
+        }
+        String currentPassword = user.getPassword();
+        if (StrUtil.isNotBlank(currentPassword)) {
+            if (StrUtil.isBlank(formDTO.getOldPassword())) {
+                return Result.fail("请输入旧密码!");
+            }
+            if (!PasswordEncoder.matches(currentPassword, formDTO.getOldPassword())) {
+                return Result.fail("旧密码错误!");
+            }
+        }
+
+        // 第三步：更新数据库中的加密密码
+        user.setPassword(PasswordEncoder.encode(newPassword));
+        if (!updateById(user)) {
+            return Result.fail("密码更新失败，请稍后重试!");
+        }
+        return Result.ok();
+    }
+
+    /**
+     * 清理旧 token 并生成新 token 返回
+     * @param user 登录用户
+     * @return token
+     */
+    private Result generateTokenAndReturn(User user) {
+        // 第一步：清理用户历史 token
+        // session 只有在setAttribute() 后才会创建，并返回客户端一个 JSESSION 用于索引，因此没有获取验证码之前登录会抛出异常
         String userKey = "login:user:" + user.getId();
         Set<String> tokens = stringRedisTemplate.opsForSet().members(userKey);
         if (tokens != null && !tokens.isEmpty()) {
@@ -103,7 +171,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
             stringRedisTemplate.delete(userKey);//删除索引表自身
         }
 
-        //保存用户信息到redis
+        // 第二步：缓存当前用户并设置 token 有效期
         String token = UUID.randomUUID().toString();
         UserDTO userDTO = BeanUtil.copyProperties(user, UserDTO.class);
         Map<String,Object> userMap = BeanUtil.beanToMap(userDTO,new HashMap<>(),
@@ -118,7 +186,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         //另外加一张表维护这个用户的所有token
         stringRedisTemplate.opsForSet().add(userKey,token);
 
-        //返回token
+        // 第三步：返回 token
         return Result.ok(token);
     }
 

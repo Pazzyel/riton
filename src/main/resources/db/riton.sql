@@ -1289,4 +1289,20 @@ ALTER TABLE `tb_user` ADD COLUMN `coins` bigint(20) UNSIGNED NOT NULL DEFAULT 0;
 
 ALTER TABLE `tb_voucher` ADD COLUMN `daily_limit` bigint(20) NULL DEFAULT NULL;
 
+CREATE TABLE `tb_shop_account`  (
+  `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `shop_id` bigint(20) UNSIGNED NOT NULL COMMENT '店铺id',
+  `phone` varchar(11) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '手机号',
+  `password` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '密码，加密存储',
+  `status` tinyint(1) UNSIGNED NOT NULL DEFAULT 1 COMMENT '状态，1：启用，0：禁用',
+  `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uniq_shop_account_phone`(`phone`) USING BTREE,
+  UNIQUE INDEX `uniq_shop_account_shop_id`(`shop_id`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Compact;
+
+ALTER TABLE `tb_voucher_order` ADD COLUMN `shop_id` bigint(20) UNSIGNED NULL DEFAULT NULL COMMENT '订单所属店铺id' AFTER `voucher_id`;
+ALTER TABLE `tb_voucher_order` ADD INDEX `idx_shop_status_create_time`(`shop_id`, `status`, `create_time`) USING BTREE;
+
 SET FOREIGN_KEY_CHECKS = 1;
