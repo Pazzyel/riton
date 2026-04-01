@@ -3,6 +3,7 @@ package com.riton.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.riton.domain.dto.LoginFormDTO;
 import com.riton.domain.dto.Result;
+import com.riton.domain.dto.UserPasswordFormDTO;
 import com.riton.domain.entity.User;
 
 import jakarta.servlet.http.HttpSession;
@@ -37,6 +38,13 @@ public interface IUserService extends IService<User> {
      * @return 无
      */
     Result logout();
+
+    /**
+     * 修改当前登录用户密码
+     * @param formDTO 密码修改参数
+     * @return 无
+     */
+    Result updatePassword(UserPasswordFormDTO formDTO);
 
     /**
      * 用户签到今天

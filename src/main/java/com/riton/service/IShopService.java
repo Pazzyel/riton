@@ -46,4 +46,13 @@ public interface IShopService extends IService<Shop> {
      * @return 返回的店铺列表
      */
     Result queryShopByType(Integer typeId, Integer current, Double x, Double y);
+
+    /**
+     * 更新店铺可维护基础资料。
+     *
+     * @param shopId      店铺 ID
+     * @param profileForm 店铺资料
+     * @return 更新结果
+     */
+    Result updateProfile(Long shopId, Shop profileForm);
 }

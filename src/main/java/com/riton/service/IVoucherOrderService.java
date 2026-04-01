@@ -27,4 +27,33 @@ public interface IVoucherOrderService extends IService<VoucherOrder> {
      * @return 如果预下单成功，返回订单id
      */
     Result voucher(Long voucherId);
+
+    /**
+     * 分页查询店铺订单。
+     *
+     * @param shopId   店铺 ID
+     * @param page     页码
+     * @param pageSize 每页数量
+     * @param status   订单状态
+     * @return 分页结果
+     */
+    Result queryShopOrders(Long shopId, Integer page, Integer pageSize, Integer status);
+
+    /**
+     * 核销店铺订单（PAID -> FINISHED）。
+     *
+     * @param shopId  店铺 ID
+     * @param orderId 订单 ID
+     * @return 核销结果
+     */
+    Result verifyShopOrder(Long shopId, Long orderId);
+
+    /**
+     * 完成店铺退款（REFUNDING -> REFUNDED）。
+     *
+     * @param shopId  店铺 ID
+     * @param orderId 订单 ID
+     * @return 更新结果
+     */
+    Result finishShopRefund(Long shopId, Long orderId);
 }

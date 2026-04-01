@@ -5,6 +5,7 @@ import com.riton.domain.dto.Result;
 import com.riton.domain.entity.SeckillVoucher;
 import com.riton.domain.entity.Voucher;
 import com.riton.domain.entity.VoucherOrder;
+import com.riton.constants.OrderStatutesConstants;
 import com.riton.mapper.VoucherMapper;
 import com.riton.mapper.VoucherOrderMapper;
 import com.riton.constants.MQConstants;
@@ -27,6 +28,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
+import java.util.List;
 
 /**
  * <p>
@@ -172,6 +174,9 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         LocalDate now = LocalDate.now();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         Long limit = voucher.getDailyLimit();
+        if (limit == null) {
+            limit = VoucherDailyLimitConstants.NO_LIMIT;
+        }
         if (limit >= 0) {
             result = stringRedisTemplate.execute(VOUCHER_DAILY_LIMIT_SCRIPT, Collections.emptyList() ,
                     voucherId.toString(),
@@ -222,5 +227,106 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         }
 
         return Result.ok(orderId);
+    }
+
+    /**
+     * 分页查询店铺订单。
+     *
+     * @param shopId   店铺 ID
+     * @param page     页码
+     * @param pageSize 每页数量
+     * @param status   订单状态
+     * @return 分页结果
+     */
+    @Override
+    public Result queryShopOrders(Long shopId, Integer page, Integer pageSize, Integer status) {
+        // 第一步：校验店铺和分页参数。
+        if (shopId == null) {
+            return Result.fail("店铺ID不能为空");
+        }
+        int currentPage = page == null || page < 1 ? 1 : page;
+        int currentPageSize = pageSize == null || pageSize < 1 ? 10 : pageSize;
+
+        // 第二步：查询总数与分页数据。
+        int offset = (currentPage - 1) * currentPageSize;
+        Long total = baseMapper.countShopOrders(shopId, status);
+        List<VoucherOrder> orders = baseMapper.queryShopOrders(shopId, offset, currentPageSize, status);
+
+        // 第三步：返回分页结果。
+        return Result.ok(orders, total == null ? 0L : total);
+    }
+
+    /**
+     * 核销店铺订单（PAID -> FINISHED）。
+     *
+     * @param shopId  店铺 ID
+     * @param orderId 订单 ID
+     * @return 核销结果
+     */
+    @Override
+    public Result verifyShopOrder(Long shopId, Long orderId) {
+        // 第一步：校验参数。
+        if (shopId == null) {
+            return Result.fail("店铺ID不能为空");
+        }
+        if (orderId == null) {
+            return Result.fail("订单ID不能为空");
+        }
+
+        // 第二步：按店铺归属和状态执行核销。
+        Integer updated = baseMapper.verifyShopOrder(shopId, orderId);
+        if (updated != null && updated > 0) {
+            return Result.ok(orderId);
+        }
+
+        // 第三步：返回失败原因。
+        VoucherOrder order = getById(orderId);
+        if (order == null) {
+            return Result.fail("订单不存在");
+        }
+        if (!shopId.equals(order.getShopId())) {
+            return Result.fail("无权操作该订单");
+        }
+        if (!OrderStatutesConstants.PAID.equals(order.getStatus())) {
+            return Result.fail("订单状态不是已支付，无法核销");
+        }
+        return Result.fail("核销失败");
+    }
+
+    /**
+     * 完成店铺退款（REFUNDING -> REFUNDED）。
+     *
+     * @param shopId  店铺 ID
+     * @param orderId 订单 ID
+     * @return 更新结果
+     */
+    @Override
+    public Result finishShopRefund(Long shopId, Long orderId) {
+        // 第一步：校验参数。
+        if (shopId == null) {
+            return Result.fail("店铺ID不能为空");
+        }
+        if (orderId == null) {
+            return Result.fail("订单ID不能为空");
+        }
+
+        // 第二步：按店铺归属和状态完成退款。
+        Integer updated = baseMapper.finishShopRefund(shopId, orderId);
+        if (updated != null && updated > 0) {
+            return Result.ok(orderId);
+        }
+
+        // 第三步：返回失败原因。
+        VoucherOrder order = getById(orderId);
+        if (order == null) {
+            return Result.fail("订单不存在");
+        }
+        if (!shopId.equals(order.getShopId())) {
+            return Result.fail("无权操作该订单");
+        }
+        if (!OrderStatutesConstants.REFUNDING.equals(order.getStatus())) {
+            return Result.fail("订单状态不是退款中，无法完成退款");
+        }
+        return Result.fail("退款完成失败");
     }
 }

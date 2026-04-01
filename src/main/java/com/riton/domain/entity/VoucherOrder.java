@@ -3,9 +3,11 @@ package com.riton.domain.entity;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 import java.io.Serializable;
@@ -23,6 +25,8 @@ import java.time.LocalDateTime;
 @EqualsAndHashCode(callSuper = false)
 @Accessors(chain = true)
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @TableName("tb_voucher_order")
 public class VoucherOrder implements Serializable {
 
@@ -43,6 +47,11 @@ public class VoucherOrder implements Serializable {
      * 购买的代金券id
      */
     private Long voucherId;
+
+    /**
+     * 订单所属店铺id
+     */
+    private Long shopId;
 
     /**
      * 支付方式 1：余额支付；2：支付宝；3：微信
