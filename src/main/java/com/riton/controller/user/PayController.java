@@ -1,4 +1,4 @@
-package com.riton.controller;
+package com.riton.controller.user;
 
 import com.riton.domain.dto.PaymentDTO;
 import com.riton.domain.dto.Result;

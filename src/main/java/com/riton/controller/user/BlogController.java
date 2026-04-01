@@ -1,4 +1,4 @@
-package com.riton.controller;
+package com.riton.controller.user;
 
 
 import com.riton.domain.dto.Result;
@@ -37,11 +37,6 @@ public class BlogController {
     @GetMapping("/of/me")
     public Result queryMyBlog(@RequestParam(value = "current", defaultValue = "1") Integer current) {
         return blogService.queryMyBlog(current);
-    }
-
-    @GetMapping("/hot")
-    public Result queryHotBlog(@RequestParam(value = "current", defaultValue = "1") Integer current) {
-        return blogService.queryHotBlog(current);
     }
 
     @GetMapping("/{id}")

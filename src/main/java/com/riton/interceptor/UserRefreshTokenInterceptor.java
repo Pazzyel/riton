@@ -13,11 +13,11 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-public class RefreshTokenInterceptor implements HandlerInterceptor {
+public class UserRefreshTokenInterceptor implements HandlerInterceptor {
 
     private StringRedisTemplate stringRedisTemplate;
 
-    public RefreshTokenInterceptor(StringRedisTemplate stringRedisTemplate) {
+    public UserRefreshTokenInterceptor(StringRedisTemplate stringRedisTemplate) {
         this.stringRedisTemplate = stringRedisTemplate;
     }
 

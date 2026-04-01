@@ -6,7 +6,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-public class LoginInterceptor implements HandlerInterceptor {
+public class UserLoginInterceptor implements HandlerInterceptor {
 
     /**
      * 拦截器方法

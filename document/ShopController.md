@@ -1,6 +1,6 @@
 ﻿# ShopController 接口文档
 
-- Controller: `com.riton.controller.ShopController`
+- Controller: `com.riton.controller.test.ShopController`
 - Base URL: `/shop`
 
 ## 通用说明

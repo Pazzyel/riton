@@ -1,6 +1,6 @@
 ﻿# BlogController 接口文档
 
-- Controller: `com.riton.controller.BlogController`
+- Controller: `com.riton.controller.user.BlogController`
 - Base URL: `/blog`
 
 ## 通用说明

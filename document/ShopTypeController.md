@@ -1,6 +1,6 @@
 ﻿# ShopTypeController 接口文档
 
-- Controller: `com.riton.controller.ShopTypeController`
+- Controller: `com.riton.controller.test.ShopTypeController`
 - Base URL: `/shop-type`
 
 ## 通用说明

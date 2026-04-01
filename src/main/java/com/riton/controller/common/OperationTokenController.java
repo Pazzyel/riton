@@ -1,4 +1,4 @@
-package com.riton.controller;
+package com.riton.controller.common;
 
 import com.riton.domain.dto.Result;
 import com.riton.service.OperationTokenService;

@@ -1,4 +1,4 @@
-package com.riton.controller;
+package com.riton.controller.common;
 
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.StrUtil;
@@ -14,10 +14,10 @@ import java.util.UUID;
 
 @Slf4j
 @RestController
-@RequestMapping("upload")
+@RequestMapping("/upload")
 public class UploadController {
 
-    @PostMapping("blog")
+    @PostMapping("/blog")
     public Result uploadImage(@RequestParam("file") MultipartFile image) {
         try {
             // 获取原始文件名称

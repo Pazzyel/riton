@@ -1,4 +1,4 @@
-package com.riton.controller;
+package com.riton.controller.user;
 
 
 import org.springframework.web.bind.annotation.RequestMapping;

@@ -1,6 +1,6 @@
 ﻿# SearchController 接口文档
 
-- Controller: `com.riton.controller.SearchController`
+- Controller: `com.riton.controller.common.SearchController`
 - Base URL: `/search`
 
 ## 通用说明

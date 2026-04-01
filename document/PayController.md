@@ -1,6 +1,6 @@
 ﻿# PayController 接口文档
 
-- Controller: `com.riton.controller.PayController`
+- Controller: `com.riton.controller.user.PayController`
 - Base URL: `/pay`
 
 ## 通用说明

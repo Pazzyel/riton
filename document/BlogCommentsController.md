@@ -1,6 +1,6 @@
 ﻿# BlogCommentsController 接口文档
 
-- Controller: `com.riton.controller.BlogCommentsController`
+- Controller: `com.riton.controller.user.BlogCommentsController`
 - Base URL: `/blog-comments`
 
 ## 接口列表

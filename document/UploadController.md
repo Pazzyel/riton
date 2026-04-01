@@ -1,6 +1,6 @@
 ﻿# UploadController 接口文档
 
-- Controller: `com.riton.controller.UploadController`
+- Controller: `com.riton.controller.common.UploadController`
 - Base URL: `/upload`
 
 ## 通用说明

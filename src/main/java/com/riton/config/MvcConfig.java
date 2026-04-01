@@ -1,7 +1,7 @@
 package com.riton.config;
 
-import com.riton.interceptor.LoginInterceptor;
-import com.riton.interceptor.RefreshTokenInterceptor;
+import com.riton.interceptor.UserLoginInterceptor;
+import com.riton.interceptor.UserRefreshTokenInterceptor;
 import com.riton.interceptor.ShopLoginInterceptor;
 import com.riton.interceptor.ShopRefreshTokenInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +21,7 @@ public class MvcConfig implements WebMvcConfigurer {
      */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(new LoginInterceptor())
+        registry.addInterceptor(new UserLoginInterceptor())
                 .addPathPatterns(
                         "/user/logout",
                         "/user/me",
@@ -37,7 +37,7 @@ public class MvcConfig implements WebMvcConfigurer {
                 )
                 .excludePathPatterns("/blog/hot")
                 .order(1);
-        registry.addInterceptor(new RefreshTokenInterceptor(stringRedisTemplate))
+        registry.addInterceptor(new UserRefreshTokenInterceptor(stringRedisTemplate))
                 .addPathPatterns("/**")
                 .excludePathPatterns("/shop/**")
                 .order(0);

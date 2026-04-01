@@ -1,6 +1,6 @@
 ﻿# FollowController 接口文档
 
-- Controller: `com.riton.controller.FollowController`
+- Controller: `com.riton.controller.user.FollowController`
 - Base URL: `/follow`
 
 ## 通用说明

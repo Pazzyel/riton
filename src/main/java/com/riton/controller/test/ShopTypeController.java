@@ -1,4 +1,4 @@
-package com.riton.controller;
+package com.riton.controller.test;
 
 
 import com.riton.domain.dto.Result;
@@ -12,12 +12,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * <p>
- * 前端控制器
- * </p>
- *
- * @author 虎哥
- * @since 2021-12-22
+ * 该类的接口仅用于测试时使用，严禁在实际中使用
+ * 实际中使用shop下的接口
  */
 @RestController
 @RequestMapping("/shop-type")
