@@ -33,3 +33,10 @@ build/
 .vscode/
 /src/main/resources/application-dev.yaml
 /agent-service/config/application.yaml
+
+### opencode ###
+opencode.json
+docs
+
+### worktrees ###
+.worktrees/

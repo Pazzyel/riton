@@ -37,7 +37,10 @@ public class MvcConfig implements WebMvcConfigurer {
                 )
                 .excludePathPatterns("/blog/hot")
                 .order(1);
-        registry.addInterceptor(new RefreshTokenInterceptor(stringRedisTemplate)).addPathPatterns("/**").order(0);
+        registry.addInterceptor(new RefreshTokenInterceptor(stringRedisTemplate))
+                .addPathPatterns("/**")
+                .excludePathPatterns("/shop/**")
+                .order(0);
 
         registry.addInterceptor(new ShopLoginInterceptor())
                 .addPathPatterns(
